@@ -588,14 +588,18 @@ namespace user {
                 kpa::ins::log(item_no++, str_format("%s_PEAK_WL", set.device).c_str(), vector({peak.wl}), "%4.4f", "nm");
                 kpa::ins::log(item_no++, str_format("%s_PEAK_PW", set.device).c_str(), vector({peak.pw}), "%2.2f", "db");
                 kpa::ins::log(item_no++, str_format("%s_%#.0f_PW", set.device, conf.center_wl).c_str(), vector({cent.pw}), "%2.2f", "db");
+                if (set.meas_1db_bandwidth) {
+                    double bw = spctm->bandwidth(1.0f);
+                    kpa::ins::log(item_no++, str_format("%s_1db_BW", set.device).c_str(), vector({bw}), "%4.4f", "nm");
+                }
             }
-            if (set.save_spectrum) {
-                auto tmp = spctm->segment((conf.center_wl - 0.5) * 1nm, (conf.center_wl + 0.5) * 1nm);
-                double avg = vector_average(tmp.data);
-                msg.prefix("Center Power +/-0.5nm avg   : ").unit("db").format("%+4.2f") << avg;
-                if (set.device_num >= 0)
-                    kpa::ins::log(item_no++, str_format("%s_%#.0f_AVG_PW", set.device, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
-            }
+            // if (set.save_spectrum) {
+            //     auto tmp = spctm->segment((conf.center_wl - 0.5) * 1nm, (conf.center_wl + 0.5) * 1nm);
+            //     double avg = vector_average(tmp.data);
+            //     msg.prefix("Center Power +/-0.5nm avg   : ").unit("db").format("%+4.2f") << avg;
+            //     if (set.device_num >= 0)
+            //         kpa::ins::log(item_no++, str_format("%s_%#.0f_AVG_PW", set.device, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
+            // }
 
             msg.prefix("Time of 1DGC processing: ").unit("sec") << _t.life();
         }
@@ -679,8 +683,8 @@ namespace user {
                     kpa::ins::log(item_no++, str_format("%s_%s_PEAK_WL", set.device, name).c_str(), vector({peak.wl}), "%4.4f", "nm");
                     kpa::ins::log(item_no++, str_format("%s_%s_PEAK_PW", set.device, name).c_str(), vector({peak.pw}), "%2.2f", "db");
                     kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_PW", set.device, name, conf.center_wl).c_str(), vector({cent.pw}), "%2.2f", "db");
-                    double avg = vector_average(seg_spctm[ch].pdb->data);
-                    kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_AVG_PW", set.device, name, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
+                    // double avg = vector_average(seg_spctm[ch].pdb->data);
+                    // kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_AVG_PW", set.device, name, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
                 }
             };
             findSpecific(0, set.name_of_sens1);
@@ -858,10 +862,6 @@ namespace user {
                 return;
             }
 
-            // uint16_t min = (_2dgc_buf.te.samp <= _2dgc_buf.tm.samp) ? _2dgc_buf.te.samp : _2dgc_buf.tm.samp;
-            // spctms.start = _2dgc_buf.te.start;
-            // spctms.step = spectrumStepToSampling(set.spectrum_step);
-            // spctms.samp = min;
             spctms.start = _2dgc_buf.te.start;
             spctms.step = _2dgc_buf.te.step;
             spctms.samp = spectrumStepToSampling(set.spectrum_step);
@@ -890,7 +890,7 @@ namespace user {
             spctms.add("TES", tes);
             spctms.add("TMS", tms);
 
-            auto seg_spctm = spctms.segment((conf.center_wl - 0.5) * 1nm, (conf.center_wl + 0.5) * 1nm);
+            // auto seg_spctm = spctms.segment((conf.center_wl - 0.5) * 1nm, (conf.center_wl + 0.5) * 1nm);
             auto findSpecific = [&](int idx_d, const char *name) {
                 auto peak = spctms[idx_d].peak();
                 msg.prefix("Peak Wave Length          : ").unit("nm").format("%4.4f") << peak.wl;
@@ -900,8 +900,12 @@ namespace user {
                 kpa::ins::log(item_no++, str_format("%s_%s_PEAK_WL", set.name, name).c_str(), vector({peak.wl}), "%4.4f", "nm");
                 kpa::ins::log(item_no++, str_format("%s_%s_PEAK_PW", set.name, name).c_str(), vector({peak.pw}), "%2.2f", "db");
                 kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_PW", set.name, name, conf.center_wl).c_str(), vector({cent.pw}), "%2.2f", "db");
-                double avg = vector_average(seg_spctm[idx_d].pdb->data);
-                kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_AVG_PW", set.name, name, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
+                if (set.meas_1db_bandwidth) {
+                    double bw = spctms[idx_d].bandwidth(1.0f);
+                    kpa::ins::log(item_no++, str_format("%s_1db_BW", set.name).c_str(), vector({bw}), "%4.4f", "nm");
+                }
+                // double avg = vector_average(seg_spctm[idx_d].pdb->data);
+                // kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_AVG_PW", set.name, name, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
             };
             int idx_d = (set.save_source_data) ? 4 : 0;
             findSpecific(idx_d + 0, "TES");
@@ -927,12 +931,15 @@ namespace user {
                         kpa::ins::log(item_no++, item_name.c_str(), vector({value}), "%+2.3f", "db");
                     }
                 };
-                auto tesg = _2dgc_buf.te.segment(set.wl_lower, set.wl_upper);
-                limit_search(tesg[0], "TE1");
-                limit_search(tesg[1], "TE2");
-                auto tmsg = _2dgc_buf.tm.segment(set.wl_lower, set.wl_upper);
-                limit_search(tmsg[0], "TM1");
-                limit_search(tmsg[1], "TM2");
+                auto spsg = spctms.segment(set.wl_lower, set.wl_upper);
+                limit_search(spsg[idx_d + 0], "TES");
+                limit_search(spsg[idx_d + 1], "TMS");
+                // auto tesg = _2dgc_buf.te.segment(set.wl_lower, set.wl_upper);
+                // limit_search(tesg[0], "TE1");
+                // limit_search(tesg[1], "TE2");
+                // auto tmsg = _2dgc_buf.tm.segment(set.wl_lower, set.wl_upper);
+                // limit_search(tmsg[0], "TM1");
+                // limit_search(tmsg[1], "TM2");
             }
         }
         void spctmDelta()

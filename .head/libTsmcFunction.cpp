@@ -144,10 +144,6 @@ std::string auto_si(double value, const char *word = "")
     return std::string("");
 }
 
-#ifdef EN_SPECTRUM_LV_OBJECT
-
-#endif
-
 struct SPECTRUM
 {
 public:
@@ -167,9 +163,7 @@ public:
     void save(const std::string &file);
     SPECTRUM segment(double wl_start, double wl_stop);
     double idxWaveLength(double wavelength);
-    // #ifdef EN_SPECTRUM_LV_OBJECT
-    //     LV_SPECTRUM lvObject();
-    // #endif
+    double bandwidth(float loss_db);
 
     PT peak()
     {
@@ -237,13 +231,24 @@ SPECTRUM SPECTRUM::segment(double wl_start, double wl_stop)
 
     return out;
 }
-
-// #ifdef EN_SPECTRUM_LV_OBJECT
-// LV_SPECTRUM SPECTRUM::lvObject()
-// {
-//     return LV_SPECTRUM(start, step, data);
-// }
-// #endif
+double SPECTRUM::bandwidth(float loss_db)
+{
+    const auto &d = data;
+    auto peak_itr = std::max_element(d.begin(), d.end());
+    float level = *peak_itr - loss_db;
+    auto itr = peak_itr;
+    for (itr = peak_itr - 1; itr >= d.begin(); itr--)
+        if (*(itr) <= level)
+            break;
+    auto lower = itr;
+    itr = peak_itr;
+    for (itr = peak_itr + 1; itr >= d.end(); itr++)
+        if (*(itr) <= level)
+            break;
+    auto upper = itr;
+    double bw = (upper - lower) * step;
+    return bw;
+}
 
 struct MULTI_SPECTRUM
 {
@@ -277,6 +282,7 @@ public:
         void operator=(const SPEC_UNIT &src) = delete;
         PT peak();
         PT cent(double wl);
+        double bandwidth(float loss_db);
     };
     double start, step;
     uint16_t samp = 1;
@@ -317,6 +323,24 @@ MULTI_SPECTRUM::SPEC_UNIT::PT MULTI_SPECTRUM::SPEC_UNIT::cent(double wl)
     int idx_cent = int(((wl * 1nm - start) / step) + 0.5);
     out.pw = pdb->data[idx_cent];
     return out;
+}
+double MULTI_SPECTRUM::SPEC_UNIT::bandwidth(float loss_db)
+{
+    const auto &d = pdb->data;
+    auto peak_itr = std::max_element(d.begin(), d.end());
+    float level = *peak_itr - loss_db;
+    auto itr = peak_itr;
+    for (itr = peak_itr - 1; itr >= d.begin(); itr--)
+        if (*(itr) <= level)
+            break;
+    auto lower = itr;
+    itr = peak_itr;
+    for (itr = peak_itr + 1; itr >= d.end(); itr++)
+        if (*(itr) <= level)
+            break;
+    auto upper = itr;
+    double bw = (upper - lower) * step;
+    return bw;
 }
 void MULTI_SPECTRUM::add(const std::string &_title, std::vector<float> &&_data)
 {

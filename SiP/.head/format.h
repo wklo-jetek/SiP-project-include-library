@@ -114,9 +114,10 @@ struct FORMAT::TEST_ALGRORITHM::TA_1DGC
     str_select sensor = "(2,1)";                    //* select="(2,1)|(2,2)|(2,3)|(2,4)|(2,5)|(2,6)|(3,1)|(3,2)|(3,3)|(3,4)|(3,5)|(3,6)|(3,1)|(3,2)", width=72
     str_select couple_method = "polar_analog_scan"; //* select="no_xy_scan|no_polar_scan|polar_analog_scan|polar_digital_scan", width=120, y_ofs=1
     str_select scan_method = "analog_fb";           //* select="no_fb|analog_fb|digital_fb|highloss_fb", width=120
-    boolean save_spectrum = true;                   //* y_ofs=18
-    str_select spectrum_step = "10pm";              //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60
-    str_select store_to_buffer = "spectrum1";       //* select="---|spectrum1|spectrum2|spectrum3|spectrum4|spectrum5|spectrum6|spectrum7|spectrum8|spectrum9", width=72
+    boolean meas_1db_bandwidth = false;             //* y_ofs=12
+    boolean save_spectrum = true;                   //* y_ofs=12
+    str_select spectrum_step = "10pm";              //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60, y_ofs=-3
+    str_select store_to_buffer = "spectrum1";       //* select="---|spectrum1|spectrum2|spectrum3|spectrum4|spectrum5|spectrum6|spectrum7|spectrum8|spectrum9", width=72, y_ofs=18
 };
 struct FORMAT::TEST_ALGRORITHM::TA_2DGC
 {
@@ -160,15 +161,16 @@ struct FORMAT::TEST_ALGRORITHM::TA_1IMO
 };
 struct FORMAT::TEST_ALGRORITHM::TA_2DGC_Normalize
 {
-    str name = "sample";               //* width=96
-    boolean save_spectrum = true;      //* y_ofs=18
-    boolean save_source_data = false;  //*
-    str_select spectrum_step = "10pm"; //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60
-    boolean range_limit_search = true; //* y_ofs=24
-    dbl wl_lower = 1260.0;             //* width=72, y_ofs
-    dbl wl_upper = 1360.0;             //* lower=0., width=72, format="%#.1f", x_ofs=84, y_ofs=-45
-    boolean IL_MAX = true;             //*
-    boolean IL_MIN = true;             //* x_ofs=84, y_ofs=-23
+    str name = "sample";                //* width=96
+    boolean save_spectrum = true;       //* y_ofs=18
+    boolean save_source_data = false;   //*
+    str_select spectrum_step = "10pm";  //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60
+    boolean meas_1db_bandwidth = false; //* y_ofs=12
+    boolean range_limit_search = true;  //* y_ofs=12
+    dbl wl_lower = 1260.0;              //* width=72, y_ofs=-3
+    dbl wl_upper = 1360.0;              //* lower=0., width=72, format="%#.1f", x_ofs=84, y_ofs=-45
+    boolean IL_MAX = true;              //*
+    boolean IL_MIN = true;              //* x_ofs=84, y_ofs=-23
 };
 struct FORMAT::TEST_ALGRORITHM::TA_2DGC_Full
 {
