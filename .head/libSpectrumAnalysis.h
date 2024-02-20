@@ -2,9 +2,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef uint32_t  Enum;
-#define Enum_Closed 0
-#define Enum_Standard 1
 
 /*!
  * NewData
@@ -76,10 +73,6 @@ void __cdecl GetPlotInfo(uint32_t reference, int32_t *X, int32_t *Y,
 void __cdecl FineFSR(uint32_t reference, double cent_wl, double *FSR, 
 	double *R_FWHM, double *Fitting_FWHM);
 /*!
- * Ng
- */
-double __cdecl Ng(double FSR, double wavelenrth, double L);
-/*!
  * ReadData
  */
 void __cdecl ReadData(uint32_t reference, double *wl_start_nm, 
@@ -89,9 +82,9 @@ void __cdecl ReadData(uint32_t reference, double *wl_start_nm,
  */
 void __cdecl GetSubdie(uint32_t reference, char subdie[], int32_t len);
 /*!
- * FSR_FP_Status
+ * FindBW
  */
-void __cdecl FSR_FP_Status(Enum FP_State);
+double __cdecl FindBW(uint32_t reference, double loss);
 
 MgErr __cdecl LVDLLStatus(char *errStr, int errStrLen, void *module);
 

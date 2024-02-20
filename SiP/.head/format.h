@@ -264,8 +264,8 @@ struct FORMAT::WGCutBack::WG_Subdie
 
 struct FORMAT::Spectrum::Analysis
 {
-    str dev_name = "NAME";  //*width=100
-    str condition = "NAME"; //*x_ofs=110,y_ofs=-47
+    str dev_name = "NAME"; //*width=100
+    // str condition = "NAME"; //*x_ofs=110,y_ofs=-47
     boolean Raw = true;     //*
     boolean Smooth = false; //*x_ofs=60,y_ofs=-23
     i32 MV_point = 10;      //*width=70

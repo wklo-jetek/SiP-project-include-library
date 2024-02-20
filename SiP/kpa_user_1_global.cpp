@@ -1075,7 +1075,7 @@ namespace user {
 
         void addWGPoint(std::string dev_name, double ref_x)
         {
-            LV_SPECTRUM lv_spctm;
+            LV_SG_SPCTM lv_spctm;
             string *tar = NULL;
             for (auto &p : Rd.Path) {
 
@@ -1088,10 +1088,10 @@ namespace user {
             lv_spctm.CreatPath(*tar);
             lv_spctm.modeRaw();
             for (auto &u : db)
-                u.il_pw.push_back(lv_spctm.findWavelength(0, u.wavelength));
+                u.il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
             lv_spctm.modeMovingAverage(mv_point);
             for (auto &u : db)
-                u.S_il_pw.push_back(lv_spctm.findWavelength(0, u.wavelength));
+                u.S_il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
             X.push_back(ref_x);
         }
         void addWGUnit(double wl)
@@ -1237,7 +1237,7 @@ namespace user {
     class CLS_Spectrum
     {
     public:
-        LV_SPECTRUM LVobj;
+        LV_MULTI_SPCTM MLVobj;
         string dev;
 
         void Analysis()
@@ -1248,58 +1248,69 @@ namespace user {
             Rd.path_lab = kpa::info::Path_XY;
             Rd.GetFile(Rd.path_lab);
 
-            // Getsubdie();
-            LVobj.clear();
-            for (int i = 0; i < (int)Rd.Path.size(); i++) {
-                LVobj.CreatPath(Rd.Path[i]);
-            }
-            LVobj.Getsubdie();
-            msg.prefix("dev") << set.dev_name;
-            if (strcmp(set.dev_name, (char *)"NAME") != 0 && strcmp(set.condition, (char *)"NAME") != 0) {
-                dev = std::string(set.dev_name) + std::string("_") + std::string(set.condition);
-            } else {
+            string *tar = NULL;
+            for (auto &p : Rd.Path) {
                 dev = set.dev_name;
+                if (p.find(dev + ".") != string::npos)
+                    tar = &p;
             }
+            if (tar == NULL)
+                return;
+            msg.prefix("dev_path") << *tar;
+            MLVobj.CreatPath(*tar);
+            MLVobj.Getsubdie();
+            for (int i = 0; i < MLVobj.GetREFsize(); i++) {
 
-            // main();
-            if (set.Raw) {
-                for (int k = 0; k < LVobj.GetREFsize(); k++) {
-                    LVobj.modeRaw();
-                    LVobj.findPeak(k, set.PEAK);
-                    LVobj.findcent(k, conf.center_wl, set.CENT);
-                    LVobj.getFSRFeat(k, conf.center_wl, set.FSR);
-                    LVobj.getNg(k, conf.center_wl, set.Ng_lens, set.FSR);
-                }
-                for (int k = 0; k < LVobj.GetREFsize(); k++) {
-                    // if (dev == LVobj.subdie[k]) {
-                    if (LVobj.subdie[k].find(dev) != string::npos) {
-                        LVobj.report(&item_no, k, LVobj.subdie, false);
+                MLVobj.ref = MLVobj.MULTI_ref[i];
+
+                if (set.Raw) {
+                    MLVobj.modeRaw();
+                    MLVobj.findPeak(set.PEAK);
+                    MLVobj.findcent(conf.center_wl, set.CENT);
+                    MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, set.FSR);
+
+                    const double nm = 1.E-9;
+                    if (set.PEAK) {
+                        kpa::ins::log(item_no++, str_format("R_%s_PEAK_wl", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.wl * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("R_%s_PEAK_db", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.db}), "%2.2f", "db");
+                    }
+                    if (set.CENT) {
+                        kpa::ins::log(item_no++, str_format("R_%s_Cent", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.Cent_db}), "%2.2f", "db");
+                    }
+                    if (set.FSR) {
+                        kpa::ins::log(item_no++, str_format("R_%s_FSR", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
+                        if (set.Ng_lens > 0)
+                            kpa::ins::log(item_no++, str_format("R_%s_Ng", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
                     }
                 }
-                // LVobj.PrintLoginfo();
-                LVobj.LOG_clear();
-            }
 
-            // smooth
-            if (set.Smooth && set.MV_point > 0) {
-                for (int k = 0; k < LVobj.GetREFsize(); k++) {
-                    LVobj.modeMovingAverage(set.MV_point);
-                    LVobj.findPeak(k, set.PEAK);
-                    LVobj.findcent(k, conf.center_wl, set.CENT);
-                    LVobj.getFSRFeat(k, conf.center_wl, set.FSR);
-                    LVobj.getNg(k, conf.center_wl, set.Ng_lens, set.FSR);
-                }
-                for (int k = 0; k < LVobj.GetREFsize(); k++) {
-                    // if (dev == LVobj.subdie[k]) {
-                    if (LVobj.subdie[k].find(dev) != string::npos) {
-                        LVobj.report(&item_no, k, LVobj.subdie, true);
+                if (set.Smooth && set.MV_point > 0) {
+                    MLVobj.modeMovingAverage(set.MV_point);
+                    MLVobj.findPeak(set.PEAK);
+                    MLVobj.findcent(conf.center_wl, set.CENT);
+                    MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, set.FSR);
+
+                    const double nm = 1.E-9;
+                    if (set.PEAK) {
+                        kpa::ins::log(item_no++, str_format("S_%s_PEAK_wl", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.wl * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("S_%s_PEAK_db", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.db}), "%2.2f", "db");
+                    }
+                    if (set.CENT) {
+                        kpa::ins::log(item_no++, str_format("S_%s_Cent", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.Cent_db}), "%2.2f", "db");
+                    }
+                    if (set.FSR) {
+                        kpa::ins::log(item_no++, str_format("S_%s_FSR", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
+                        if (set.Ng_lens > 0)
+                            kpa::ins::log(item_no++, str_format("S_%s_Ng", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
                     }
                 }
-                // LVobj.PrintLoginfo();
-                LVobj.LOG_clear();
             }
-            LVobj.clear();
 
+            MLVobj.clear();
             Rd.clear();
         }
     };

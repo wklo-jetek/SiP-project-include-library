@@ -43,6 +43,7 @@ public:
         HEXAPOD(TS300 *_up) : up(_up){};
         void MoveHomePosition();
         void MoveHexapodXY(double x_um, double y_um);
+        void MovePztXY(double x_um, double y_um);
         void OpticalAlignment(bool RoughScanEn);
         void FindOpticalHeight();
         void ReadProbeAngle();
@@ -105,25 +106,29 @@ char *TS300::query(const char *wt_buf, int TO_ms = 60000)
 }
 void TS300::probing(STAT state)
 {
-    auto chuck_contact = [&]() {
+    auto chuck_contact = [&]()
+    {
         if (__chuck == contact)
             return;
         query("move_chuck_contact");
         __chuck = contact;
     };
-    auto chuck_seperate = [&]() {
+    auto chuck_seperate = [&]()
+    {
         if (__chuck == separate)
             return;
         query("move_chuck_separation");
         __chuck = separate;
     };
-    auto fiber_contact = [&]() {
+    auto fiber_contact = [&]()
+    {
         if (__fiber == contact)
             return;
         hxpod.FindOpticalHeight();
         __fiber = contact;
     };
-    auto fiber_separate = [&]() {
+    auto fiber_separate = [&]()
+    {
         if (__fiber == separate)
             return;
         query("siph:move_separation West");
@@ -189,6 +194,18 @@ void TS300::HEXAPOD::MoveHexapodXY(double x_um, double y_um)
     char buf[128];
     sprintf(buf, "move_positioner_xy West,Zero,%#.0f,%#.0f", x_um, y_um);
     auto rlt = up->query(buf, 11000);
+}
+void TS300::HEXAPOD::MovePztXY(double x_um, double y_um)
+{
+    // char buf[128];
+    // auto checkRange = [](double v) -> bool
+    // { return ((v > 0.) && (v < 100.)); };
+    // if (!checkRange(x_um))
+    //     return;
+    // if (!checkRange(y_um))
+    //     return;
+    // sprintf(buf, "MovePZT W %5.2f %5.2f 0. H", x_um, y_um);
+    // auto rlt = up->query(buf, 11000);
 }
 void TS300::HEXAPOD::OpticalAlignment(bool RoughScanEn = false)
 {
@@ -306,8 +323,10 @@ std::vector<double> TS300::Getncube_Couple(double *px_p, double *py_p, double *p
 }
 void TS300::setFineScan(bool en)
 {
-    auto b = [](char *str) -> bool { return str[0] == 'T'; };
-    auto o = [](bool en) -> const char * { return (en) ? "ON" : "OFF"; };
+    auto b = [](char *str) -> bool
+    { return str[0] == 'T'; };
+    auto o = [](bool en) -> const char *
+    { return (en) ? "ON" : "OFF"; };
     auto r_buf = query("siph:get_alignment West,Array");
     strtok(r_buf, ",");
     strtok(NULL, ",");
@@ -319,8 +338,10 @@ void TS300::setFineScan(bool en)
 }
 void TS300::setGradinSearch(bool en)
 {
-    auto b = [](char *str) -> bool { return str[0] == 'T'; };
-    auto o = [](bool en) -> const char * { return (en) ? "ON" : "OFF"; };
+    auto b = [](char *str) -> bool
+    { return str[0] == 'T'; };
+    auto o = [](bool en) -> const char *
+    { return (en) ? "ON" : "OFF"; };
     auto r_buf = query("siph:get_alignment West,Array");
     strtok(r_buf, ",");
     strtok(NULL, ",");
@@ -332,8 +353,10 @@ void TS300::setGradinSearch(bool en)
 }
 void TS300::setCoarseSeach(bool en)
 {
-    auto b = [](char *str) -> bool { return str[0] == 'T'; };
-    auto o = [](bool en) -> const char * { return (en) ? "ON" : "OFF"; };
+    auto b = [](char *str) -> bool
+    { return str[0] == 'T'; };
+    auto o = [](bool en) -> const char *
+    { return (en) ? "ON" : "OFF"; };
     auto r_buf = query("siph:get_alignment West,Array");
     strtok(r_buf, ",");
     strtok(NULL, ",");

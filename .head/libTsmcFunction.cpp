@@ -221,7 +221,8 @@ void SPECTRUM::save(const std::string &file)
 }
 SPECTRUM SPECTRUM::segment(double wl_start, double wl_stop)
 {
-    auto index = [&](double wl) { return (this->data.begin() + int((wl - this->start) / (this->step) + 0.5)); };
+    auto index = [&](double wl)
+    { return (this->data.begin() + int((wl - this->start) / (this->step) + 0.5)); };
     SPECTRUM out;
     out.title = this->title;
     out.samp = this->samp;
@@ -403,7 +404,8 @@ MULTI_SPECTRUM MULTI_SPECTRUM::segment(double wl_start, double wl_stop)
     out.step = this->step;
     for (auto &su : this->db)
     {
-        auto index = [&](double wl) { return (su->data.begin() + int((wl - this->start) / (this->step) + 0.5)); };
+        auto index = [&](double wl)
+        { return (su->data.begin() + int((wl - this->start) / (this->step) + 0.5)); };
         out.add(su->title, std::vector(index(wl_start), index(wl_stop)));
     }
     out.start = wl_start;
@@ -460,73 +462,110 @@ public:
 class LV_SG_SPCTM
 {
 private:
+public:
     uint32_t ref;
 
-public:
-};
-class LV_SPECTRUM
-{
-private:
-    std::vector<uint32_t> ref;
-
-public:
-    SPECTRUM SPECobject;
-    MULTI_SPECTRUM MSPECobject;
     struct FSR_STRUCT
     {
         double FSR;
         double FWHM_raw;
         double FWHM_fit;
+        double Ng;
     };
     struct PEAK_STRUCT
     {
         double wl;
         double db;
     };
-    std::vector<FSR_STRUCT> Log_FSR;
-    std::vector<PEAK_STRUCT> Log_PEAK;
-    std::vector<double> Log_Cent;
-    std::vector<double> Log_Ng;
-    std::vector<std::string> subdie;
-
+    FSR_STRUCT CFSR;
+    PEAK_STRUCT PEAK;
+    double Cent_db;
     void CreatData(double wl_start, double wl_stop, const std::vector<float> &data);
-    void CreatSPECM(SPECTRUM &spctm);         // testmode
-    void CreatMLSPECM(MULTI_SPECTRUM &spctm); // testmode
-    void CreatPath(std::string path);         // readfile
-    ~LV_SPECTRUM();
+    void CreatPath(std::string path); // readfile
+    ~LV_SG_SPCTM();
     void modeMovingAverage(int mv_num);
     void modeRaw();
-    void Getsubdie();
-    // SPECTRUM getSpectrum();
+    double findWavelength(double wavelength);
+    double findBW(double db);
+    void findcent(double wavelength, bool);
+    void findPeak(bool);
+    void findFSRFeat(double wl, double L, bool);
+};
+void LV_SG_SPCTM::CreatData(double wl_start, double wl_stop, const std::vector<float> &data)
+{
+    ref = NewData(wl_start, wl_stop, (float *)&data[0], data.size());
+}
+void LV_SG_SPCTM::CreatPath(std::string path)
+{
+
+    if (strlen(path.c_str()) == 0)
+    {
+        std::cout << "Path is empty!" << std::endl;
+        return;
+    }
+    SpOpenFile((char *)path.c_str());
+    this->ref = NewDataFromFile();
+}
+LV_SG_SPCTM::~LV_SG_SPCTM()
+{
+    DeleteData(ref);
+}
+void LV_SG_SPCTM::modeMovingAverage(int mv_num)
+{
+    SysModeMovingAverage(mv_num);
+}
+void LV_SG_SPCTM::modeRaw()
+{
+    SysModeRaw();
+}
+double LV_SG_SPCTM::findWavelength(double wavelength)
+{
+    return FindWaveLength(ref, wavelength);
+}
+double LV_SG_SPCTM::findBW(double db)
+{
+    return FindBW(ref, db);
+}
+void LV_SG_SPCTM::findcent(double wavelength, bool en)
+{
+    if (!en)
+        return;
+    Cent_db = FindWaveLength(ref, wavelength);
+}
+void LV_SG_SPCTM::findPeak(bool en)
+{
+    if (!en)
+        return;
+    FindPeak(ref, &PEAK.wl, &PEAK.db);
+}
+void LV_SG_SPCTM::findFSRFeat(double wl, double L, bool en)
+{
+    if (!en)
+        return;
+    FineFSR(ref, wl, &CFSR.FSR, &CFSR.FWHM_raw, &CFSR.FWHM_fit);
+    if (!L)
+        return;
+    CFSR.Ng = (wl * wl) / (CFSR.FSR * L);
+}
+
+class LV_MULTI_SPCTM : public LV_SG_SPCTM
+{
+private:
+public:
+    std::vector<uint32_t> MULTI_ref;
+    std::vector<std::string> subdie;
+    void CreatData(double wl_start, double wl_stop, const std::vector<float> &data);
+    void CreatPath(std::string path); // readfile
+    ~LV_MULTI_SPCTM();
     int GetREFsize();
-    void getFSRFeat(int index, double wl, bool);
-    void getNg(int index, double center_wl, double L, bool en);
-    double findWavelength(int index, double wavelength);
-    void findPeak(int index, bool en);
-    void findcent(int index, double wavelength, bool en);
-    void report(int *num, int index, std::vector<std::string> subdie, bool smooth);
-    void PrintLoginfo();
-    void LOG_clear();
+    void Getsubdie();
     void clear();
 };
-
-void LV_SPECTRUM::CreatData(double wl_start, double wl_stop, const std::vector<float> &data)
+void LV_MULTI_SPCTM::CreatData(double wl_start, double wl_stop, const std::vector<float> &data)
 {
-    ref.push_back(NewData(wl_start, wl_stop, (float *)&data[0], data.size()));
+    MULTI_ref.push_back(NewData(wl_start, wl_stop, (float *)&data[0], data.size()));
 }
-void LV_SPECTRUM::CreatSPECM(SPECTRUM &spctm)
-{
-    ref.push_back(NewData(spctm.start, spctm.step, &spctm.data[0], spctm.data.size()));
-}
-void LV_SPECTRUM::CreatMLSPECM(MULTI_SPECTRUM &spctm)
-{
-    for (int i = 0; i < (int)spctm.getDbSize(); ++i)
-    {
-        MULTI_SPECTRUM::SPEC_UNIT specUnit = spctm[i];
-        ref.push_back(NewData(spctm.start, spctm.step, specUnit.pdb->data.data(), specUnit.pdb->data.size()));
-    }
-}
-void LV_SPECTRUM::CreatPath(std::string path)
+void LV_MULTI_SPCTM::CreatPath(std::string path)
 {
 
     if (strlen(path.c_str()) == 0)
@@ -538,138 +577,36 @@ void LV_SPECTRUM::CreatPath(std::string path)
     ref_size = SpOpenFile((char *)path.c_str());
     for (int i = 0; i < ref_size; i++)
     {
-        this->ref.push_back(NewDataFromFile());
+        this->MULTI_ref.push_back(NewDataFromFile());
     }
 }
-LV_SPECTRUM::~LV_SPECTRUM()
+LV_MULTI_SPCTM::~LV_MULTI_SPCTM()
 {
-    for (int i = 0; i < (int)ref.size(); i++)
+    for (int i = 0; i < (int)MULTI_ref.size(); i++)
     {
-        DeleteData(ref[i]);
+        DeleteData(MULTI_ref[i]);
     }
     clear();
 }
-void LV_SPECTRUM::modeMovingAverage(int mv_num)
+int LV_MULTI_SPCTM::GetREFsize()
 {
-    SysModeMovingAverage(mv_num);
+    return (int)MULTI_ref.size();
 }
-void LV_SPECTRUM::modeRaw()
-{
-    SysModeRaw();
-}
-// SPECTRUM LV_SPECTRUM::getSpectrum()
-// {
-// ReadData(ref, &SPECobject.start, &SPECobject.step, &SPECobject.data[0], SPECobject.data.size());
-// return SPECobject;
-//}
-void LV_SPECTRUM::Getsubdie()
+void LV_MULTI_SPCTM::Getsubdie()
 {
     int len = 30;
     char tmp[len];
-    for (int i = 0; i < (int)ref.size(); i++)
+    for (int i = 0; i < (int)MULTI_ref.size(); i++)
     {
         // msg.prefix("ref.size()") << ref.size();
-        GetSubdie(ref[i], tmp, len);
+        GetSubdie(MULTI_ref[i], tmp, len);
         std::string str(tmp);
         subdie.push_back(str);
     }
 }
-int LV_SPECTRUM::GetREFsize()
+void LV_MULTI_SPCTM::clear()
 {
-    return (int)ref.size();
-}
-void LV_SPECTRUM::getFSRFeat(int index, double wl, bool en)
-{
-    if (!en)
-        return;
-
-    FSR_STRUCT tmp;
-    FineFSR(ref[index], wl, &tmp.FSR, &tmp.FWHM_raw, &tmp.FWHM_fit);
-    Log_FSR.push_back(tmp);
-}
-void LV_SPECTRUM::getNg(int index, double center_wl, double L, bool en)
-{
-    if (!en)
-        return;
-
-    Log_Ng.push_back(Ng(this->Log_FSR[index].FSR, center_wl, L));
-}
-void LV_SPECTRUM::findPeak(int index, bool en)
-{
-    if (!en)
-        return;
-    PEAK_STRUCT tmp;
-
-    FindPeak(ref[index], &tmp.wl, &tmp.db);
-    Log_PEAK.push_back(tmp);
-}
-void LV_SPECTRUM::findcent(int index, double wavelength, bool en)
-{
-    if (!en)
-        return;
-
-    Log_Cent.push_back(FindWaveLength(ref[index], wavelength));
-}
-double LV_SPECTRUM::findWavelength(int index, double wavelength)
-{
-    double tmp;
-    tmp = FindWaveLength(ref[index], wavelength);
-    return tmp;
-}
-void LV_SPECTRUM::PrintLoginfo()
-{
-    // Peak
-    for (const auto &peak : Log_PEAK)
-    {
-        std::cout << "wl: " << peak.wl << ", db: " << peak.db << std::endl;
-    }
-    // msg.prefix("Log_Cent") << Log_Cent;
-    //  FSR
-    for (const auto &FSR : Log_FSR)
-    {
-        std::cout << "FSR: " << FSR.FSR << ", FWHM_fit: " << FSR.FWHM_fit << ", FWHM_raw: " << FSR.FWHM_raw << std::endl;
-    }
-    // msg.prefix("Log_Ng") << Log_Ng;
-}
-void LV_SPECTRUM::report(int *num, int index, std::vector<std::string> subdie, bool smooth)
-{
-    auto mode = [](bool smooth) -> const char * { return (smooth) ? "S" : "R"; };
-    const double nm = 1.E-9;
-
-    if (Log_Cent.size() > 0)
-    {
-        kpa::ins::log((*num)++, str_format("%s_%s_Cent", mode(smooth), subdie[index].c_str()).c_str(), std::vector({Log_Cent[index]}), "%2.2f", "db");
-    }
-    if (Log_PEAK.size() > 0)
-    {
-        kpa::ins::log((*num)++, str_format("%s_%s_PEAK_wl", mode(smooth), subdie[index].c_str()).c_str(), std::vector({Log_PEAK[index].wl * nm}), "%4.4f", "nm");
-        kpa::ins::log((*num)++, str_format("%s_%s_PEAK_db", mode(smooth), subdie[index].c_str()).c_str(), std::vector({Log_PEAK[index].db}), "%2.2f", "db");
-    }
-    if (Log_FSR.size() > 0)
-    {
-        kpa::ins::log((*num)++, str_format("%s_%s_FSR", mode(smooth), subdie[index].c_str()).c_str(), std::vector({Log_FSR[index].FSR * nm}), "%4.4f", "nm");
-        kpa::ins::log((*num)++, str_format("%s_%s_FWHM_fit", mode(smooth), subdie[index].c_str()).c_str(), std::vector({Log_FSR[index].FWHM_fit * nm}), "%4.4f", "nm");
-        kpa::ins::log((*num)++, str_format("%s_%s_FWHM_raw", mode(smooth), subdie[index].c_str()).c_str(), std::vector({Log_FSR[index].FWHM_raw * nm}), "%4.4f", "nm");
-    }
-    if (Log_Ng.size() > 0)
-    {
-        kpa::ins::log((*num)++, str_format("%s_%s_Ng", mode(smooth), subdie[index].c_str()).c_str(), std::vector({Log_Ng[index]}), "%4.4f", "");
-    }
-}
-void LV_SPECTRUM::LOG_clear()
-{
-    Log_FSR.clear();
-    Log_PEAK.clear();
-    Log_Cent.clear();
-    Log_Ng.clear();
-}
-void LV_SPECTRUM::clear()
-{
-    ref.clear();
-    Log_FSR.clear();
-    Log_PEAK.clear();
-    Log_Cent.clear();
-    Log_Ng.clear();
+    MULTI_ref.clear();
     subdie.clear();
 }
 #endif //* EN_SPECTRUM_LV_OBJECT
