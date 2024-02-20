@@ -21,11 +21,11 @@
 #include "libSiPhSmu.h"
 #include "libTS300_ins.h"
 
-#define EN_SPECTRUM_LV_OBJECT
+// #define EN_SPECTRUM_LV_OBJECT
 
-#ifdef EN_SPECTRUM_LV_OBJECT
+// #ifdef EN_SPECTRUM_LV_OBJECT
 #include "libSpectrumAnalysis.h"
-#endif
+// #endif
 
 // * Define physical unit (_kpa_si_unit)
 _kpa_si_unit(A);

@@ -177,7 +177,7 @@ public:
     {
         PT out;
         out.wl = wl;
-        int idx_cent = int(((wl * 1nm - start) / step) + 0.5);
+        int idx_cent = int(((wl * 1E-9 - start) / step) + 0.5);
         out.pw = data[idx_cent];
         return out;
     }
@@ -321,7 +321,7 @@ MULTI_SPECTRUM::SPEC_UNIT::PT MULTI_SPECTRUM::SPEC_UNIT::cent(double wl)
 {
     PT out;
     out.wl = wl;
-    int idx_cent = int(((wl * 1nm - start) / step) + 0.5);
+    int idx_cent = int(((wl * 1E-9 - start) / step) + 0.5);
     out.pw = pdb->data[idx_cent];
     return out;
 }
@@ -449,8 +449,6 @@ std::string MULTI_SPECTRUM::__checkTitle(const std::string &title)
 {
     return __stringReplace(title, ",", ";");
 }
-
-#ifdef EN_SPECTRUM_LV_OBJECT
 
 class LV_SPECTRUM_SYS_UNLOAD
 {
@@ -609,6 +607,5 @@ void LV_MULTI_SPCTM::clear()
     MULTI_ref.clear();
     subdie.clear();
 }
-#endif //* EN_SPECTRUM_LV_OBJECT
 
 #endif //* __LIBTSMCFUNCTIONS_CPP__

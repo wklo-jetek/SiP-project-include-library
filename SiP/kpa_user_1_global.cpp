@@ -589,7 +589,11 @@ namespace user {
                 kpa::ins::log(item_no++, str_format("%s_PEAK_PW", set.device).c_str(), vector({peak.pw}), "%2.2f", "db");
                 kpa::ins::log(item_no++, str_format("%s_%#.0f_PW", set.device, conf.center_wl).c_str(), vector({cent.pw}), "%2.2f", "db");
                 if (set.meas_1db_bandwidth) {
-                    double bw = spctm->bandwidth(1.0f);
+                    LV_SG_SPCTM lv_spctm;
+                    lv_spctm.CreatData(spctm->start, spctm->step, spctm->data);
+                    // lv_spctm.modeMovingAverage(101);
+                    double bw = lv_spctm.findBW(1.0);
+                    // double bw = spctm->bandwidth(1.0f);
                     kpa::ins::log(item_no++, str_format("%s_1db_BW", set.device).c_str(), vector({bw}), "%4.4f", "nm");
                 }
             }
@@ -901,7 +905,11 @@ namespace user {
                 kpa::ins::log(item_no++, str_format("%s_%s_PEAK_PW", set.name, name).c_str(), vector({peak.pw}), "%2.2f", "db");
                 kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_PW", set.name, name, conf.center_wl).c_str(), vector({cent.pw}), "%2.2f", "db");
                 if (set.meas_1db_bandwidth) {
-                    double bw = spctms[idx_d].bandwidth(1.0f);
+                    LV_SG_SPCTM lv_spctm;
+                    lv_spctm.CreatData(spctms.start, spctms.step, spctms[idx_d].pdb->data);
+                    // lv_spctm.modeMovingAverage(101);
+                    double bw = lv_spctm.findBW(1.0);
+                    // double bw = spctms[idx_d].bandwidth(1.0f);
                     kpa::ins::log(item_no++, str_format("%s_1db_BW", set.name).c_str(), vector({bw}), "%4.4f", "nm");
                 }
                 // double avg = vector_average(seg_spctm[idx_d].pdb->data);
