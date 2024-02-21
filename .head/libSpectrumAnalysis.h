@@ -68,11 +68,6 @@ uint32_t __cdecl NextPlot(void);
 void __cdecl GetPlotInfo(uint32_t reference, int32_t *X, int32_t *Y, 
 	char dev_name[], int32_t len);
 /*!
- * FineFSR
- */
-void __cdecl FineFSR(uint32_t reference, double cent_wl, double *FSR, 
-	double *R_FWHM, double *Fitting_FWHM);
-/*!
  * ReadData
  */
 void __cdecl ReadData(uint32_t reference, double *wl_start_nm, 
@@ -85,6 +80,19 @@ void __cdecl GetSubdie(uint32_t reference, char subdie[], int32_t len);
  * FindBW
  */
 double __cdecl FindBW(uint32_t reference, double loss);
+/*!
+ * FindFsrCent
+ */
+double __cdecl FindFsrCent(uint32_t reference, double cent_wl);
+/*!
+ * FindFwhmCent
+ */
+void __cdecl FindFwhmCent(uint32_t reference, double cent_wl, double *R_FWHM, 
+	double *Fit_FWHM);
+/*!
+ * ALGOCosFit
+ */
+void __cdecl ALGOCosFit(uint32_t reference, double cent_wl);
 
 MgErr __cdecl LVDLLStatus(char *errStr, int errStrLen, void *module);
 

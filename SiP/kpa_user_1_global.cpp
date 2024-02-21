@@ -1275,7 +1275,10 @@ namespace user {
                     MLVobj.modeRaw();
                     MLVobj.findPeak(set.PEAK);
                     MLVobj.findcent(conf.center_wl, set.CENT);
+                    if (set.FSR || set.FWHM)
+                        MLVobj.Cosinefit(conf.center_wl);
                     MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, set.FSR);
+                    MLVobj.findFWHM(conf.center_wl, set.FWHM);
 
                     const double nm = 1.E-9;
                     if (set.PEAK) {
@@ -1287,10 +1290,12 @@ namespace user {
                     }
                     if (set.FSR) {
                         kpa::ins::log(item_no++, str_format("R_%s_FSR", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
                         if (set.Ng_lens > 0)
                             kpa::ins::log(item_no++, str_format("R_%s_Ng", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
+                    }
+                    if (set.FWHM) {
+                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
                     }
                 }
 
@@ -1298,7 +1303,10 @@ namespace user {
                     MLVobj.modeMovingAverage(set.MV_point);
                     MLVobj.findPeak(set.PEAK);
                     MLVobj.findcent(conf.center_wl, set.CENT);
+                    if (set.FSR || set.FWHM)
+                        MLVobj.Cosinefit(conf.center_wl);
                     MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, set.FSR);
+                    MLVobj.findFWHM(conf.center_wl, set.FWHM);
 
                     const double nm = 1.E-9;
                     if (set.PEAK) {
@@ -1310,10 +1318,12 @@ namespace user {
                     }
                     if (set.FSR) {
                         kpa::ins::log(item_no++, str_format("S_%s_FSR", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
                         if (set.Ng_lens > 0)
                             kpa::ins::log(item_no++, str_format("S_%s_Ng", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
+                    }
+                    if (set.FWHM) {
+                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
                     }
                 }
             }

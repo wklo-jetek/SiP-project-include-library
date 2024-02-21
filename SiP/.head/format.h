@@ -273,4 +273,5 @@ struct FORMAT::Spectrum::Analysis
     boolean CENT = false;   //*
     boolean FSR = false;    //*
     dbl Ng_lens = 0;        //*width=70
+    boolean FWHM = false;   //*
 };

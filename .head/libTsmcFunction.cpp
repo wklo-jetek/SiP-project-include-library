@@ -483,11 +483,13 @@ public:
     ~LV_SG_SPCTM();
     void modeMovingAverage(int mv_num);
     void modeRaw();
+    void Cosinefit(double wl);
     double findWavelength(double wavelength);
     double findBW(double db);
     void findcent(double wavelength, bool);
     void findPeak(bool);
     void findFSRFeat(double wl, double L, bool);
+    void findFWHM(double wl, bool);
 };
 void LV_SG_SPCTM::CreatData(double wl_start, double wl_stop, const std::vector<float> &data)
 {
@@ -516,6 +518,10 @@ void LV_SG_SPCTM::modeRaw()
 {
     SysModeRaw();
 }
+void LV_SG_SPCTM::Cosinefit(double wl)
+{
+    ALGOCosFit(ref, wl);
+}
 double LV_SG_SPCTM::findWavelength(double wavelength)
 {
     return FindWaveLength(ref, wavelength);
@@ -540,12 +546,17 @@ void LV_SG_SPCTM::findFSRFeat(double wl, double L, bool en)
 {
     if (!en)
         return;
-    FineFSR(ref, wl, &CFSR.FSR, &CFSR.FWHM_raw, &CFSR.FWHM_fit);
+    CFSR.FSR = FindFsrCent(ref, wl);
     if (!L)
         return;
     CFSR.Ng = (wl * wl) / (CFSR.FSR * L);
 }
-
+void LV_SG_SPCTM::findFWHM(double wl, bool en)
+{
+    if (!en)
+        return;
+    FindFwhmCent(ref, wl, &CFSR.FWHM_raw, &CFSR.FWHM_fit);
+}
 class LV_MULTI_SPCTM : public LV_SG_SPCTM
 {
 private:
