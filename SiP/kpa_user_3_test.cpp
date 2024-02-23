@@ -39,7 +39,7 @@ void user::KPA_TEST()
     //     if (strncmp(ins, "TA_", 3) == 0) {
     //     }
     // };
-
+    int checkcount = 0;
     char buf[128];
     while (ItemReader_NextFunction(buf, 128)) {
         string func_name(buf);
@@ -113,6 +113,14 @@ void user::KPA_TEST()
         if (kpa::flag::f_debug)
             if (kpa::flag::f_stop_button)
                 break;
+        checkcount++;
+    }
+    if (fWaferStart) {
+        logcheckcount = checkcount;
+    } else {
+        if (logcheckcount != checkcount)
+            warning += str_format("(%d,%d)", px, py);
+        kpa::port::sys_msg << warning;
     }
 
     // ***  Program end    *** //

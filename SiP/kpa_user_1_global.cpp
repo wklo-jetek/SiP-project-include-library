@@ -13,10 +13,15 @@ namespace user {
     bool fWaferStart = true; //* Wafer start flag
     int px, py;              //* Die Position (X, Y)
     int item_no = 1;         //* item number
+    int logcheckcount = 0;
+    string warning;
     struct CONF
     {
-        double center_wl = 1300.0;
+        double center_wl = 1310.0;
         double laser_pw = 10.0;
+        double laser_step = 0.1;
+        double laser_start = 1260.0;
+        double laser_stop = 1357.5;
         int fiber_height = 460;
     } conf;
 
@@ -218,7 +223,7 @@ namespace user {
                 msg << "Spectrum scan processing";
                 fb_enable();
                 probe.probing(probe.contact);
-                laser.scan.start(sptm.wl_start).stop(sptm.wl_stop).step(sptm.wl_step).speed(100);
+                laser.scan.speed(100);
                 laser.scan.single_mode().run().wait();
                 laser.backToCenterWL(); // laser.wavelength = conf.center_wl;
                 fb_disable();
@@ -260,22 +265,38 @@ namespace user {
             ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
             kpa::ins::MSG_INDENT __t;
 
-            if (conf.center_wl != set.center_wavelength) {
-                conf.center_wl = set.center_wavelength;
-                laser.center_wavelength_nm = conf.center_wl;
-                laser.backToCenterWL(); // laser.wavelength = conf.center_wl;
-                msg.prefix("Laser Center Wavelength Change : ").format("%4.1f nm") << conf.center_wl;
+            if (conf.fiber_height != set.fiber_contact_height) {
+                conf.fiber_height = set.fiber_contact_height;
+                probe.hxpod.fiber_height = conf.fiber_height;
+                msg.prefix("Fiber Array Contact Height     : ").format("%d um") << conf.fiber_height;
             }
             if (conf.laser_pw != set.laser_pw) {
                 conf.laser_pw = set.laser_pw;
                 laser.power = conf.laser_pw;
                 msg.prefix("Laser Power Change             : ").format("%+3.2f db") << conf.laser_pw;
             }
-            if (conf.fiber_height != set.fiber_contact_height) {
-                conf.fiber_height = set.fiber_contact_height;
-                probe.hxpod.fiber_height = conf.fiber_height;
-                msg.prefix("Fiber Array Contact Height     : ").format("%d um") << conf.fiber_height;
+            if (conf.laser_step != set.laser_step) {
+                conf.laser_step = set.laser_step;
+                laser.scan.step(conf.laser_step);
+                msg.prefix("Laser Step Change             : ").format("%+3.2f pm") << conf.laser_step;
             }
+            string lasermode = set.laser_mode;
+            if (lasermode == "Oband") {
+                conf.laser_start = set.Oband_start;
+                conf.laser_stop = set.Oband_stop;
+                conf.center_wl = set.Oband_cent;
+            }
+            if (lasermode == "CLband") {
+                conf.laser_start = set.CLband_start;
+                conf.laser_stop = set.CLband_stop;
+                conf.center_wl = set.CLband_cent;
+            }
+            laser.center_wavelength_nm = conf.center_wl;
+            laser.backToCenterWL(); // laser.wavelength = conf.center_wl;
+            laser.scan.start(conf.laser_start).stop(conf.laser_stop);
+            msg.prefix("Laser Start Wavelength Change : ").format("%4.1f nm") << conf.laser_start;
+            msg.prefix("Laser Stop Wavelength Change : ").format("%4.1f nm") << conf.laser_stop;
+            msg.prefix("Laser Center Wavelength Change : ").format("%4.1f nm") << conf.center_wl;
         }
     };
     CLS_SIPH objSiph;
@@ -470,6 +491,273 @@ namespace user {
         }
     };
     CLS_ALIGN_METHOD objAlignMethod;
+    //! ==== WG_Cut_Back ==== !//
+    class WGCUTBACK
+    {
+    private:
+        struct WG_UNIT
+        {
+            double wavelength;
+            vector<double> il_pw;
+            vector<double> S_il_pw; // smooth
+        };
+        vector<WG_UNIT> db; // need to clear memory
+        vector<double> X;   // need to clear memory
+
+        vector<double> slope_; // need to clear memory
+        vector<double> RSQ;    // need to clear memory
+        vector<string> subdie_;
+        vector<string> cond_;
+        vector<double> slope_mean;
+        vector<double> RSQ_mean;
+
+        void linearFit(const vector<double> &x_values, const vector<double> &y_values, double &slope, double &RSQ)
+        {
+            if (x_values.size() != y_values.size() || x_values.size() == 0) {
+                std::cerr << "Error: Invalid input data!" << std::endl;
+                return;
+            }
+
+            int n = x_values.size();
+            double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x_squared = 0;
+            // print
+            msg.prefix(" x = ") << x_values;
+            msg.prefix(" y = ") << y_values;
+
+            for (int i = 0; i < n; ++i) {
+                sum_x += x_values[i];
+                sum_y += y_values[i];
+                sum_xy += x_values[i] * y_values[i];
+                sum_x_squared += x_values[i] * x_values[i];
+            }
+
+            double x_mean = sum_x / n;
+            double y_mean = sum_y / n;
+
+            slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x_squared - sum_x * sum_x); // slope
+            RSQ = Cal_RSQ(y_values);                                                    // R
+        };
+        vector<double> cal_Predictions(const vector<double> &x_values, double slope, double intercept)
+        {
+            // 计算线性回归预测值
+            vector<double> predictions;
+            for (double value : x_values) {
+                double predictedY = slope * value + intercept;
+                predictions.push_back(predictedY);
+            }
+            return predictions;
+        }
+        double Cal_RSQ(const vector<double> &actual)
+        {
+            auto avg = [](const vector<double> &data) {
+                double A = 0;
+                for (int i = 0; i < (int)data.size(); ++i)
+                    A = A + data[i];
+                A = A / (int)data.size();
+                return A;
+            };
+            auto squr_root = [&](const vector<double> &data) {
+                double sum = 0, average = avg(data);
+                for (int i = 0; i < (int)data.size(); ++i)
+                    sum += (data[i] - average) * (data[i] - average);
+                return sqrt(sum);
+            };
+
+            auto &x = this->X;
+            auto &y = actual;
+            auto x_bar = avg(x);
+            auto y_bar = avg(y);
+
+            double diff_mul;
+            for (int i = 0; i < (int)actual.size(); ++i)
+                diff_mul += (x[i] - x_bar) * (y[i] - y_bar);
+            return (diff_mul / (squr_root(x) * squr_root(y))) * (diff_mul / (squr_root(x) * squr_root(y)));
+        };
+
+    public:
+        int log_num;
+        int mv_point;
+
+        SPECTRUM spctm_; // for readfile test
+
+        void addWGPoint(std::string dev_name, double ref_x)
+        {
+            LV_SG_SPCTM lv_spctm;
+            string *tar = NULL;
+            for (auto &p : Rd.Path) {
+
+                if (p.find(dev_name + ".") != string::npos)
+                    tar = &p;
+            }
+            if (tar == NULL)
+                return;
+            msg.prefix("dev_name") << dev_name;
+            lv_spctm.CreatPath(*tar);
+            lv_spctm.modeRaw();
+            for (auto &u : db)
+                u.il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
+            lv_spctm.modeMovingAverage(mv_point);
+            for (auto &u : db)
+                u.S_il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
+            X.push_back(ref_x);
+        }
+        void GetWGPoint(SPECTRUM &spctm, std::string dev_name, double ref_x) // testmode
+        {
+            LV_SG_SPCTM lv_spctm;
+            msg.prefix("dev_name") << dev_name;
+            lv_spctm.CreatData(spctm.start, spctm.step, spctm.data);
+            lv_spctm.modeRaw();
+            for (auto &u : db)
+                u.il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
+            lv_spctm.modeMovingAverage(mv_point);
+            for (auto &u : db)
+                u.S_il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
+            X.push_back(ref_x);
+        }
+        void addWGUnit(double wl)
+        {
+            WG_UNIT db_temp;
+            if (wl != -1) {
+                db.push_back(WG_UNIT({wl}));
+            }
+        }
+        void addSubdie(char *device_name)
+        {
+            if (strcmp(device_name, (char *)"NAME") != 0) {
+                subdie_.push_back(device_name);
+            }
+        }
+        void addSubdieComb(char *device_name, char *cond)
+        {
+            string subdie_comb;
+            if (strcmp(device_name, (char *)"NAME") != 0 && strcmp(cond, (char *)"NAME") != 0) {
+                subdie_comb = std::string(device_name) + std::string("_") + std::string(cond);
+                subdie_.push_back(subdie_comb);
+            }
+        }
+        void Get_loss(SPECTRUM &spctmtemp)
+        {
+            if (db.size() == 0)
+                return;
+            for (int i = 0; i < (int)db.size(); i++) {
+                db[i].il_pw.push_back(spctmtemp.idxWaveLength(db[i].wavelength * (1E-9)));
+            };
+        };
+        void report(int *num_p, bool smooth, std::string item_name)
+        {
+            if (smooth == false || (smooth == true && mv_point > 0)) {
+                auto mode = [](bool smooth) -> const char * { return (smooth) ? "S" : "R"; };
+                kpa::ins::log((*num_p)++, str_format("%s_%s_slope", mode(smooth), item_name.c_str()).c_str(), slope_mean, "%.4f", "");
+                kpa::ins::log((*num_p)++, str_format("%s_%s_RSQ", mode(smooth), item_name.c_str()).c_str(), RSQ_mean, "%.4f", "");
+            }
+        };
+        void slope(bool smooth)
+        {
+            // linear fit
+            double ss = 0;
+            double ee = 0;
+            slope_.clear();
+            slope_mean.clear();
+            RSQ.clear();
+            RSQ_mean.clear();
+            msg.prefix("X") << X;
+            msg.prefix("db[0].il_pw") << db[0].il_pw;
+            for (int i = 0; i < (int)db.size(); ++i) {
+                double S;
+                double R;
+                msg.prefix("<wavelength>") << db[i].wavelength;
+                if (smooth && mv_point > 0) {
+                    linearFit(X, db[i].S_il_pw, S, R);
+                    slope_.push_back(S);
+                    RSQ.push_back(R);
+                } else {
+                    linearFit(X, db[i].il_pw, S, R);
+                    slope_.push_back(S);
+                    RSQ.push_back(R);
+                }
+
+                ss = ss + slope_[i];
+                ee = ee + RSQ[i];
+            }
+            ss = ss / (int)db.size();
+            slope_mean.push_back(ss);
+            ee = ee / (int)db.size();
+            RSQ_mean.push_back(ee);
+            Printinfo();
+        };
+        void Printinfo()
+        {
+            msg.prefix("======================================== ") << "";
+            msg.prefix("slope= ") << slope_;
+            msg.prefix("RSS= ") << RSQ;
+            msg.prefix("slope_mean= ") << slope_mean;
+            msg.prefix("RSS_mean= ") << RSQ_mean;
+        }
+        void clear()
+        {
+            X.clear();
+            db.clear();
+            slope_.clear();
+            RSQ.clear();
+            subdie_.clear();
+            slope_mean.clear();
+            RSQ_mean.clear();
+            cond_.clear();
+        };
+    };
+    class CLS_WG_CUTBACK
+    {
+    private:
+        WGCUTBACK WG;
+
+    public:
+        void WG_Wavelength()
+        {
+            msg << "WG_Wavelength >> ";
+            kpa::ins::MSG_INDENT a;
+            FORMAT::WGCutBack::WG_Wavelength set;
+            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
+            WG.clear();
+            Rd.clear();
+            Rd.path_lab = kpa::info::Path_XY;
+            Rd.GetFile(Rd.path_lab);
+
+            WG.mv_point = set.MV_point;
+            WG.addWGUnit(set.wavelength_01);
+            WG.addWGUnit(set.wavelength_02);
+            WG.addWGUnit(set.wavelength_03);
+            WG.addWGUnit(set.wavelength_04);
+            WG.addWGUnit(set.wavelength_05);
+        }
+        void WG_Subdie()
+        {
+            msg << "WG_Subdie >> ";
+            kpa::ins::MSG_INDENT a;
+            FORMAT::WGCutBack::WG_Subdie set;
+            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
+            WG.addWGPoint(set.dev_name, set.x);
+        }
+        void WG_GetLoss(SPECTRUM &spctm, std::string dev_name, double ref_x)
+        {
+            msg << "WG_GetLoss >> ";
+            kpa::ins::MSG_INDENT a;
+            WG.GetWGPoint(spctm, dev_name, ref_x);
+        }
+        void WG_Analysis()
+        {
+            msg << "WG_Analysis >> ";
+            kpa::ins::MSG_INDENT a;
+            FORMAT::WGCutBack::WG_Analysis set;
+            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
+            WG.slope(false);
+            WG.report(&item_no, false, set.Item_name);
+            WG.slope(true);
+            WG.report(&item_no, true, set.Item_name);
+            WG.clear();
+            Rd.clear();
+        }
+    };
+    CLS_WG_CUTBACK objWGCUTBACK;
 
     //! Define CLS_TEST_ALGRORITHM
     class CLS_TEST_ALGRORITHM : public GOLDEN
@@ -603,6 +891,8 @@ namespace user {
                     kpa::ins::log(item_no++, str_format("%s_1db_BW", set.device).c_str(), vector({bw}), "%4.4f", "nm");
                 }
             }
+            if (set.WG)
+                objWGCUTBACK.WG_GetLoss(*spctm, set.device, set.WG_x);
             // if (set.save_spectrum) {
             //     auto tmp = spctm->segment((conf.center_wl - 0.5) * 1nm, (conf.center_wl + 0.5) * 1nm);
             //     double avg = vector_average(tmp.data);
@@ -996,256 +1286,6 @@ namespace user {
         }
     };
     CLS_TEST_ALGRORITHM objTestAlgrorithm;
-
-    //! ==== WG_Cut_Back ==== !//
-    class WGCUTBACK
-    {
-    private:
-        struct WG_UNIT
-        {
-            double wavelength;
-            vector<double> il_pw;
-            vector<double> S_il_pw; // smooth
-        };
-        vector<WG_UNIT> db; // need to clear memory
-        vector<double> X;   // need to clear memory
-
-        vector<double> slope_; // need to clear memory
-        vector<double> RSQ;    // need to clear memory
-        vector<string> subdie_;
-        vector<string> cond_;
-        vector<double> slope_mean;
-        vector<double> RSQ_mean;
-
-        void linearFit(const vector<double> &x_values, const vector<double> &y_values, double &slope, double &RSQ)
-        {
-            if (x_values.size() != y_values.size() || x_values.size() == 0) {
-                std::cerr << "Error: Invalid input data!" << std::endl;
-                return;
-            }
-
-            int n = x_values.size();
-            double sum_x = 0, sum_y = 0, sum_xy = 0, sum_x_squared = 0;
-            // print
-            msg.prefix(" x = ") << x_values;
-            msg.prefix(" y = ") << y_values;
-
-            for (int i = 0; i < n; ++i) {
-                sum_x += x_values[i];
-                sum_y += y_values[i];
-                sum_xy += x_values[i] * y_values[i];
-                sum_x_squared += x_values[i] * x_values[i];
-            }
-
-            double x_mean = sum_x / n;
-            double y_mean = sum_y / n;
-
-            // double b = y_mean - a * x_mean;                                                // intercept
-
-            // 计算协方差
-            double covariance = 0;
-            for (int i = 0; i < n; ++i) {
-                covariance += (x_values[i] - x_mean) * (y_values[i] - y_mean);
-            }
-            // 计算标准差
-            double stdDevX = 0;
-            double stdDevY = 0;
-            for (int i = 0; i < n; ++i) {
-                stdDevX += std::pow(x_values[i] - x_mean, 2);
-                stdDevY += std::pow(y_values[i] - y_mean, 2);
-            }
-            stdDevX = std::sqrt(stdDevX);
-            stdDevY = std::sqrt(stdDevY);
-            double correlation = covariance / (stdDevX * stdDevY);
-            slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x_squared - sum_x * sum_x); // slope
-            RSQ = covariance / (stdDevX * stdDevY);                                     // R
-        };
-        vector<double> cal_Predictions(const vector<double> &x_values, double slope, double intercept)
-        {
-            // 计算线性回归预测值
-            vector<double> predictions;
-            for (double value : x_values) {
-                double predictedY = slope * value + intercept;
-                predictions.push_back(predictedY);
-            }
-            return predictions;
-        }
-        double cal_Error(const vector<double> &actual, const vector<double> &predicted)
-        {
-            // 计算误差（残差）
-            double sum_squared_error = 0;
-            for (size_t i = 0; i < actual.size(); ++i) {
-                double error = actual[i] - predicted[i];
-                sum_squared_error += pow(error, 2);
-            }
-            return sqrt(sum_squared_error / actual.size());
-        };
-
-    public:
-        int log_num;
-        int mv_point;
-
-        SPECTRUM spctm_; // for readfile test
-
-        void addWGPoint(std::string dev_name, double ref_x)
-        {
-            LV_SG_SPCTM lv_spctm;
-            string *tar = NULL;
-            for (auto &p : Rd.Path) {
-
-                if (p.find(dev_name + ".") != string::npos)
-                    tar = &p;
-            }
-            if (tar == NULL)
-                return;
-            msg.prefix("dev_name") << dev_name;
-            lv_spctm.CreatPath(*tar);
-            lv_spctm.modeRaw();
-            for (auto &u : db)
-                u.il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
-            lv_spctm.modeMovingAverage(mv_point);
-            for (auto &u : db)
-                u.S_il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
-            X.push_back(ref_x);
-        }
-        void addWGUnit(double wl)
-        {
-            WG_UNIT db_temp;
-            if (wl != -1) {
-                db.push_back(WG_UNIT({wl}));
-            }
-        }
-        void addSubdie(char *device_name)
-        {
-            if (strcmp(device_name, (char *)"NAME") != 0) {
-                subdie_.push_back(device_name);
-            }
-        }
-        void addSubdieComb(char *device_name, char *cond)
-        {
-            string subdie_comb;
-            if (strcmp(device_name, (char *)"NAME") != 0 && strcmp(cond, (char *)"NAME") != 0) {
-                subdie_comb = std::string(device_name) + std::string("_") + std::string(cond);
-                subdie_.push_back(subdie_comb);
-            }
-        }
-        void Get_loss(SPECTRUM &spctmtemp)
-        {
-            if (db.size() == 0)
-                return;
-            for (int i = 0; i < (int)db.size(); i++) {
-                db[i].il_pw.push_back(spctmtemp.idxWaveLength(db[i].wavelength * (1E-9)));
-            };
-        };
-        void report(int *num_p, bool smooth, std::string item_name)
-        {
-            if (smooth == false || (smooth == true && mv_point > 0)) {
-                auto mode = [](bool smooth) -> const char * { return (smooth) ? "S" : "R"; };
-                kpa::ins::log((*num_p)++, str_format("%s_%s_slope", mode(smooth), item_name.c_str()).c_str(), slope_mean, "%.4f", "");
-                kpa::ins::log((*num_p)++, str_format("%s_%s_RSQ", mode(smooth), item_name.c_str()).c_str(), RSQ_mean, "%.4f", "");
-            }
-        };
-        void slope(bool smooth)
-        {
-            // linear fit
-            double ss = 0;
-            double ee = 0;
-            slope_.clear();
-            slope_mean.clear();
-            RSQ.clear();
-            RSQ_mean.clear();
-            msg.prefix("X") << X;
-            msg.prefix("db[0].il_pw") << db[0].il_pw;
-            for (int i = 0; i < (int)db.size(); ++i) {
-                double S;
-                double R;
-                msg.prefix("<wavelength>") << db[i].wavelength;
-                if (smooth && mv_point > 0) {
-                    linearFit(X, db[i].S_il_pw, S, R);
-                    slope_.push_back(S);
-                    RSQ.push_back(R);
-                } else {
-                    linearFit(X, db[i].il_pw, S, R);
-                    slope_.push_back(S);
-                    RSQ.push_back(R);
-                }
-
-                ss = ss + slope_[i];
-                ee = ee + RSQ[i];
-            }
-            ss = ss / (int)db.size();
-            slope_mean.push_back(ss);
-            ee = ee / (int)db.size();
-            RSQ_mean.push_back(ee);
-            Printinfo();
-        };
-        void Printinfo()
-        {
-            msg.prefix("======================================== ") << "";
-            msg.prefix("slope= ") << slope_;
-            msg.prefix("RSS= ") << RSQ;
-            msg.prefix("slope_mean= ") << slope_mean;
-            msg.prefix("RSS_mean= ") << RSQ_mean;
-        }
-        void clear()
-        {
-            X.clear();
-            db.clear();
-            slope_.clear();
-            RSQ.clear();
-            subdie_.clear();
-            slope_mean.clear();
-            RSQ_mean.clear();
-            cond_.clear();
-        };
-    };
-    class CLS_WG_CUTBACK
-    {
-    private:
-        WGCUTBACK WG;
-
-    public:
-        void WG_Wavelength()
-        {
-            msg << "WG_Wavelength >> ";
-            kpa::ins::MSG_INDENT a;
-            FORMAT::WGCutBack::WG_Wavelength set;
-            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
-            WG.clear();
-            Rd.clear();
-            Rd.path_lab = kpa::info::Path_XY;
-            Rd.GetFile(Rd.path_lab);
-
-            WG.mv_point = set.MV_point;
-            WG.addWGUnit(set.wavelength_01);
-            WG.addWGUnit(set.wavelength_02);
-            WG.addWGUnit(set.wavelength_03);
-            WG.addWGUnit(set.wavelength_04);
-            WG.addWGUnit(set.wavelength_05);
-        }
-        void WG_Subdie()
-        {
-            msg << "WG_Subdie >> ";
-            kpa::ins::MSG_INDENT a;
-            FORMAT::WGCutBack::WG_Subdie set;
-            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
-            WG.addWGPoint(set.dev_name, set.x);
-        }
-        void WG_Analysis()
-        {
-            msg << "WG_Analysis >> ";
-            kpa::ins::MSG_INDENT a;
-            FORMAT::WGCutBack::WG_Analysis set;
-            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
-            WG.slope(false);
-            WG.report(&item_no, false, set.Item_name);
-            WG.slope(true);
-            WG.report(&item_no, true, set.Item_name);
-            WG.clear();
-            Rd.clear();
-        }
-    };
-    CLS_WG_CUTBACK objWGCUTBACK;
 
     //! Define Spectrum//
     class CLS_Spectrum

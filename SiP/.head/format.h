@@ -46,8 +46,16 @@ namespace FORMAT {
 
 struct FORMAT::SIPH::SIPH_CONFIG
 {
-    dbl laser_pw = 10.0;            //* format="%2.2f db"
-    dbl center_wavelength = 1300.0; //* format="%4.1f nm"
+    dbl laser_pw = 10.0;             //* format="%2.2f db"
+    dbl laser_step = 0.1;            //* format="%2.2f pm"
+    str_select laser_mode = "Oband"; //* select="Oband|CLband", width=86
+    dbl Oband_start = 1260.0;        //* upper=1357.5, lower=1260.0,width=70,format="%4.1f nm "
+    dbl Oband_stop = 1357.5;         //* upper=1357.5, lower=1260.0,,width=70,x_ofs=80, y_ofs=-45,format="%4.1f nm"
+    dbl Oband_cent = 1310.0;         //*upper=1357.5, lower=1260.0,width=70,x_ofs=160, y_ofs=-45,format="%4.1f nm"
+    dbl CLband_start = 1502.5;       //*  upper=1637.5, lower=1502.5,width=70,format="%4.1f nm "
+    dbl CLband_stop = 1637.55;       //* upper=1637.5, lower=1502.5,,width=70,x_ofs=80, y_ofs=-45,format="%4.1f nm"
+    dbl CLband_cent = 1550.0;        //* upper=1637.5, lower=1502.5,,width=70,x_ofs=160, y_ofs=-45,format="%4.1f nm"
+    // dbl center_wavelength = 1300.0;  //* format="%4.1f nm"
     i32 fiber_contact_height = 460; //* format="%d um"
 };
 struct FORMAT::SIPH::SIPH_HwControl
@@ -119,6 +127,8 @@ struct FORMAT::TEST_ALGRORITHM::TA_1DGC
     boolean save_spectrum = true;                   //* y_ofs=12
     str_select spectrum_step = "10pm";              //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60, y_ofs=-3
     str_select store_to_buffer = "spectrum1";       //* select="---|spectrum1|spectrum2|spectrum3|spectrum4|spectrum5|spectrum6|spectrum7|spectrum8|spectrum9", width=72, y_ofs=18
+    boolean WG = false;                             //* y_ofs=12
+    dbl WG_x = 0.0;                                 //* width=85
 };
 struct FORMAT::TEST_ALGRORITHM::TA_2DGC
 {
@@ -278,6 +288,6 @@ struct FORMAT::Spectrum::Analysis
     boolean PEAK = false;   //*y_ofs=20
     boolean CENT = false;   //*
     boolean FSR = false;    //*
-    dbl Ng_lens = 0;        //*width=70
+    dbl Ng_lens = 0;        //*width=70,format="%4.1f nm"
     boolean FWHM = false;   //*
 };

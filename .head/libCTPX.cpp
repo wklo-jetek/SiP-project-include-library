@@ -156,8 +156,18 @@ CTPX::POWER::operator double()
 void CTPX::WAVELENGTH::operator=(double nm)
 {
     var = nm;
-    if (r->hw != NULL)
-        r->hw->write(str_format(":CTP:RLAS1:WAV %.2fNM", var));
+    if (var > 1357.5)
+    {
+        if (r->hw != NULL)
+            r->hw->write(str_format(":CTP:RLAS1:WAV %.2fNM", var));
+        r->hw->write(":CTP:SENS:FBC 1");
+    }
+    else
+    {
+        if (r->hw != NULL)
+            r->hw->write(str_format(":CTP:RLAS2:WAV %.2fNM", var));
+        r->hw->write(":CTP:SENS:FBC 2");
+    }
 }
 CTPX::WAVELENGTH::operator double()
 {
@@ -225,7 +235,8 @@ double CTPX::SENSOR::TRACE::start()
     if (r->r->hw == NULL)
         return 0.0;
     std::string rlt;
-    auto process = [&]() -> bool {
+    auto process = [&]() -> bool
+    {
         r->r->hw->write(inst(":STAR?").c_str());
         rlt = r->r->hw->read();
         return (rlt[0] != 0x0);
@@ -240,7 +251,8 @@ double CTPX::SENSOR::TRACE::step()
     if (r->r->hw == NULL)
         return 1.0;
     std::string rlt;
-    auto process = [&]() -> bool {
+    auto process = [&]() -> bool
+    {
         auto cmd = inst(":SAMP?");
         r->r->hw->write(cmd);
         rlt = r->r->hw->read();
@@ -274,7 +286,8 @@ std::vector<float> CTPX::SENSOR::TRACE::data()
 
     int p, len_data;
     std::string rlt;
-    auto subReadData = [&]() -> bool {
+    auto subReadData = [&]() -> bool
+    {
         r->r->hw->write(inst("? BIN,DB").c_str());
 
         auto TO_BK = r->r->hw->timeout;
@@ -335,7 +348,8 @@ double CTPX::SENSOR::power()
 
     double out;
     std::string rlt;
-    auto process = [&]() {
+    auto process = [&]()
+    {
         r->hw->write(str_format(":CTP:SENS%d:CHAN%d:POW?", sense, ch).c_str());
         rlt = r->hw->read();
         out = atof(rlt.c_str());
