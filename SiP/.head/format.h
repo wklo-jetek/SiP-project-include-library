@@ -40,6 +40,7 @@ namespace FORMAT {
         struct SET_WAFER_POSITION;
         struct REC_POLAR_STATE;
         struct SET_POLAR_STATE;
+        struct SET_CENTER_WL;
     };
 }
 
@@ -241,6 +242,11 @@ struct FORMAT::RECORD::REC_POLAR_STATE
 struct FORMAT::RECORD::SET_POLAR_STATE
 {
     str_select polar_state; //* select="state1|state2|state3|state4|state5|state6"
+};
+struct FORMAT::RECORD::SET_CENTER_WL
+{
+    str_select source = "SiPh_config"; //* select="SiPh_config|PeakWL(buffer)", width=96
+    str_select buffer = "spectrum1";   //* select="spectrum1|spectrum2|spectrum3|spectrum4|spectrum5|spectrum6|spectrum7|spectrum8|spectrum9", width=96, y_ofs=18
 };
 
 struct FORMAT::WGCutBack::WG_Wavelength

@@ -106,6 +106,9 @@ void user::KPA_TEST()
         } else if (func_name == "SET_WAFER_POSITION") {
             msg << "RECORD::SET_WAFER_POSITION >> ";
             objRecord.set_wafer_position();
+        } else if (func_name == "SET_CENTER_WL") {
+            msg << "RECORD::SET_CENTER_WL >> ";
+            objRecord.set_center_wl();
         }
         if (kpa::flag::f_debug)
             if (kpa::flag::f_stop_button)

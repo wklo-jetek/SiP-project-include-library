@@ -220,7 +220,7 @@ namespace user {
                 probe.probing(probe.contact);
                 laser.scan.start(sptm.wl_start).stop(sptm.wl_stop).step(sptm.wl_step).speed(100);
                 laser.scan.single_mode().run().wait();
-                laser.wavelength = conf.center_wl;
+                laser.backToCenterWL(); // laser.wavelength = conf.center_wl;
                 fb_disable();
             }
         };
@@ -249,6 +249,11 @@ namespace user {
     class CLS_SIPH : GOLDEN
     {
     public:
+        CLS_SIPH()
+        {
+            laser.center_wavelength_nm = conf.center_wl;
+            laser.backToCenterWL(); // laser.wavelength = conf.center_wl;
+        }
         void config()
         {
             FORMAT::SIPH::SIPH_CONFIG set;
@@ -257,7 +262,8 @@ namespace user {
 
             if (conf.center_wl != set.center_wavelength) {
                 conf.center_wl = set.center_wavelength;
-                laser.wavelength = conf.center_wl;
+                laser.center_wavelength_nm = conf.center_wl;
+                laser.backToCenterWL(); // laser.wavelength = conf.center_wl;
                 msg.prefix("Laser Center Wavelength Change : ").format("%4.1f nm") << conf.center_wl;
             }
             if (conf.laser_pw != set.laser_pw) {
@@ -528,6 +534,8 @@ namespace user {
                 return &_2dgc_buf.tm;
             return &_spctms;
         }
+
+    public:
         SPECTRUM *subSpctmBufSelect(char *w)
         {
             int ch;
@@ -540,8 +548,6 @@ namespace user {
             else
                 return &__spctm;
         }
-
-    public:
         void dev1DGC()
         {
             FORMAT::TEST_ALGRORITHM::TA_1DGC set;
@@ -750,7 +756,7 @@ namespace user {
                 receiveSpctmData(set.sensor6, set.column6);
                 receiveSpctmData(set.sensor7, set.column7);
                 receiveSpctmData(set.sensor8, set.column8);
-                spctm->save(t_filename((string(date_stamp()) + proj_name.c_str()), set.device).c_str());
+                spctms.save(t_filename((string(date_stamp()) + proj_name.c_str()), set.device).c_str());
                 msg.prefix("Time of Data Transfer & Save: ").unit("sec") << _t.seg();
             }
 
@@ -1495,6 +1501,23 @@ namespace user {
                 polar.feedback(true, polar.digital);
                 Sleep(200);
                 polar.feedback(false);
+            }
+        }
+        void set_center_wl()
+        {
+            kpa::ins::MSG_INDENT __t;
+            FORMAT::RECORD::SET_CENTER_WL set;
+            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
+
+            string source(set.source);
+            if (source == "SiPh_config") {
+                laser.center_wavelength_nm = conf.center_wl;
+                laser.backToCenterWL();
+            } else if (source == "PeakWL(buffer)") {
+                auto spctm = objTestAlgrorithm.subSpctmBufSelect(set.buffer);
+                auto pt = spctm->peak();
+                laser.center_wavelength_nm = pt.wl;
+                laser.backToCenterWL();
             }
         }
     };
