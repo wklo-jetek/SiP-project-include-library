@@ -478,7 +478,7 @@ public:
     FSR_STRUCT CFSR;
     PEAK_STRUCT PEAK;
     double Cent_db;
-    void CreatData(double wl_start, double wl_stop, const std::vector<float> &data);
+    void CreatData(double wl_start, double wl_step, const std::vector<float> &data);
     void CreatPath(std::string path); // readfile
     ~LV_SG_SPCTM();
     void modeMovingAverage(int mv_num);
@@ -491,9 +491,9 @@ public:
     void findFSRFeat(double wl, double L, bool, bool);
     void findFWHM(double wl, bool);
 };
-void LV_SG_SPCTM::CreatData(double wl_start, double wl_stop, const std::vector<float> &data)
+void LV_SG_SPCTM::CreatData(double wl_start, double wl_step, const std::vector<float> &data)
 {
-    ref = NewData(wl_start, wl_stop, (float *)&data[0], data.size());
+    ref = NewData(wl_start, wl_step, (float *)&data[0], data.size());
 }
 void LV_SG_SPCTM::CreatPath(std::string path)
 {
