@@ -265,6 +265,11 @@ namespace user {
             ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
             kpa::ins::MSG_INDENT __t;
 
+            if (conf.fiber_height != set.fiber_contact_height) {
+                conf.fiber_height = set.fiber_contact_height;
+                probe.hxpod.fiber_height = conf.fiber_height;
+                msg.prefix("Fiber Array Contact Height     : ").format("%d um") << conf.fiber_height;
+            }
             if (conf.laser_pw != set.laser_pw) {
                 conf.laser_pw = set.laser_pw;
                 laser.power = conf.laser_pw;
