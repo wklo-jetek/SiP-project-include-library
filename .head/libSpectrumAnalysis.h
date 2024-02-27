@@ -2,6 +2,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef uint16_t  Enum;
+#define Enum_Raw 0
+#define Enum_CosineFit 1
 
 /*!
  * NewData
@@ -83,7 +86,7 @@ double __cdecl FindBW(uint32_t reference, double loss);
 /*!
  * FindFsrCent
  */
-double __cdecl FindFsrCent(uint32_t reference, double cent_wl);
+double __cdecl FindFsrCent(uint32_t reference, double cent_wl, Enum Datamode);
 /*!
  * FindFwhmCent
  */

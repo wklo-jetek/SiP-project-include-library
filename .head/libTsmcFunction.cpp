@@ -488,7 +488,7 @@ public:
     double findBW(double db);
     void findcent(double wavelength, bool);
     void findPeak(bool);
-    void findFSRFeat(double wl, double L, bool);
+    void findFSRFeat(double wl, double L, bool, bool);
     void findFWHM(double wl, bool);
 };
 void LV_SG_SPCTM::CreatData(double wl_start, double wl_stop, const std::vector<float> &data)
@@ -542,14 +542,14 @@ void LV_SG_SPCTM::findPeak(bool en)
         return;
     FindPeak(ref, &PEAK.wl, &PEAK.db);
 }
-void LV_SG_SPCTM::findFSRFeat(double wl, double L, bool en)
+void LV_SG_SPCTM::findFSRFeat(double wl, double L, bool cosfit, bool en)
 {
     if (!en)
         return;
-    CFSR.FSR = FindFsrCent(ref, wl);
+    CFSR.FSR = FindFsrCent(ref, wl, cosfit);
     if (!L)
         return;
-    CFSR.Ng = (wl * wl) / (CFSR.FSR * L);
+    CFSR.Ng = (wl * wl) / (CFSR.FSR * L * 1000);
 }
 void LV_SG_SPCTM::findFWHM(double wl, bool en)
 {
