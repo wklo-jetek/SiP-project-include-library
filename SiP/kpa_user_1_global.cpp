@@ -270,16 +270,12 @@ namespace user {
                 laser.power = conf.laser_pw;
                 msg.prefix("Laser Power Change             : ").format("%+3.2f db") << conf.laser_pw;
             }
-            if (conf.fiber_height != set.fiber_contact_height) {
-                conf.fiber_height = set.fiber_contact_height;
-                probe.hxpod.fiber_height = conf.fiber_height;
-                msg.prefix("Fiber Array Contact Height     : ").format("%d um") << conf.fiber_height;
-            }
             if (conf.laser_step != set.laser_step) {
                 conf.laser_step = set.laser_step;
                 laser.scan.step(conf.laser_step);
                 msg.prefix("Laser Step Change             : ").format("%+3.2f pm") << conf.laser_step;
             }
+
             string lasermode = set.laser_mode;
             if (lasermode == "Oband") {
                 conf.laser_start = set.Oband_start;
