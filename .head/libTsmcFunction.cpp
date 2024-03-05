@@ -466,9 +466,11 @@ public:
     struct FSR_STRUCT
     {
         double FSR;
-        double FWHM_raw;
-        double FWHM_fit;
         double Ng;
+        double CFWHM;
+        double lumba;
+        std::vector<double> FWHM;
+        std::vector<double> Q;
     };
     struct PEAK_STRUCT
     {
@@ -486,10 +488,10 @@ public:
     void Cosinefit(double wl);
     double findWavelength(double wavelength);
     double findBW(double db);
-    void findcent(double wavelength, bool);
-    void findPeak(bool);
-    void findFSRFeat(double wl, double L, bool, bool);
-    void findFWHM(double wl, bool);
+    void findcent(double wavelength);
+    void findPeak();
+    void findFSRFeat(double wl, double L, bool);
+    void findFWHM(double wl, int fwhmnum, bool);
 };
 void LV_SG_SPCTM::CreatData(double wl_start, double wl_step, const std::vector<float> &data)
 {
@@ -508,6 +510,8 @@ void LV_SG_SPCTM::CreatPath(std::string path)
 }
 LV_SG_SPCTM::~LV_SG_SPCTM()
 {
+    CFSR.FWHM.clear();
+    CFSR.Q.clear();
     DeleteData(ref);
 }
 void LV_SG_SPCTM::modeMovingAverage(int mv_num)
@@ -530,32 +534,29 @@ double LV_SG_SPCTM::findBW(double db)
 {
     return FindBW(ref, db);
 }
-void LV_SG_SPCTM::findcent(double wavelength, bool en)
+void LV_SG_SPCTM::findcent(double wavelength)
 {
-    if (!en)
-        return;
     Cent_db = FindWaveLength(ref, wavelength);
 }
-void LV_SG_SPCTM::findPeak(bool en)
+void LV_SG_SPCTM::findPeak()
 {
-    if (!en)
-        return;
     FindPeak(ref, &PEAK.wl, &PEAK.db);
 }
-void LV_SG_SPCTM::findFSRFeat(double wl, double L, bool cosfit, bool en)
+void LV_SG_SPCTM::findFSRFeat(double wl, double L, bool cosfit)
 {
-    if (!en)
-        return;
     CFSR.FSR = FindFsrCent(ref, wl, cosfit);
     if (!L)
         return;
     CFSR.Ng = (wl * wl) / (CFSR.FSR * L * 1000);
 }
-void LV_SG_SPCTM::findFWHM(double wl, bool en)
+void LV_SG_SPCTM::findFWHM(double wl, int fwhmnum, bool cosfit)
 {
-    if (!en)
-        return;
-    FindFwhmCent(ref, wl, &CFSR.FWHM_raw, &CFSR.FWHM_fit);
+    CFSR.FWHM.resize(fwhmnum * 2 + 1);
+    FindFwhm(ref, wl, fwhmnum, &CFSR.CFWHM, &CFSR.lumba, &CFSR.FWHM[0], cosfit, fwhmnum * 2 + 1);
+    for (int i = 0; i < (int)CFSR.FWHM.size(); i++)
+    {
+        CFSR.Q.push_back(CFSR.FWHM[i] == 0 ? 0 : CFSR.lumba / CFSR.FWHM[i]);
+    }
 }
 class LV_MULTI_SPCTM : public LV_SG_SPCTM
 {
@@ -603,7 +604,7 @@ int LV_MULTI_SPCTM::GetREFsize()
 }
 void LV_MULTI_SPCTM::Getsubdie()
 {
-    int len = 30;
+    int len = 50;
     char tmp[len];
     for (int i = 0; i < (int)MULTI_ref.size(); i++)
     {
@@ -617,6 +618,8 @@ void LV_MULTI_SPCTM::clear()
 {
     MULTI_ref.clear();
     subdie.clear();
+    CFSR.FWHM.clear();
+    CFSR.Q.clear();
 }
 
 #endif //* __LIBTSMCFUNCTIONS_CPP__

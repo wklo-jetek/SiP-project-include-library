@@ -17,7 +17,8 @@ public:
     {
         stringstream ss(path_);
         string token;
-        while (getline(ss, token, ';')) {
+        while (getline(ss, token, ';'))
+        {
             Path.push_back(token);
         }
         // msg.prefix("path") << Path;

@@ -609,10 +609,10 @@ namespace user {
             lv_spctm.CreatData(spctm.start, spctm.step, spctm.data);
             lv_spctm.modeRaw();
             for (auto &u : db)
-                u.il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
+                u.il_pw.push_back(spctm.idxWaveLength(u.wavelength * (1E-9)));
             lv_spctm.modeMovingAverage(mv_point);
             for (auto &u : db)
-                u.S_il_pw.push_back(lv_spctm.findWavelength(u.wavelength));
+                u.S_il_pw.push_back(spctm.idxWaveLength(u.wavelength * (1E-9)));
             X.push_back(ref_x);
         }
         void addWGUnit(double wl)
@@ -1295,9 +1295,9 @@ namespace user {
         LV_MULTI_SPCTM MLVobj;
         string dev;
 
-        void Analysis()
+        void PP_Subdie()
         {
-            FORMAT::Spectrum::Analysis set;
+            FORMAT::PostProcessing::PP_Subdie set;
             ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
             kpa::ins::MSG_INDENT __t;
             Rd.path_lab = kpa::info::Path_XY;
@@ -1314,77 +1314,149 @@ namespace user {
             msg.prefix("dev_path") << *tar;
             MLVobj.CreatPath(*tar);
             MLVobj.Getsubdie();
-            for (int i = 0; i < MLVobj.GetREFsize(); i++) {
+            auto Post_Processing = [&](bool smooth) {
+                const double nm = 1.E-9;
 
-                MLVobj.ref = MLVobj.MULTI_ref[i];
+                for (int i = 0; i < MLVobj.GetREFsize(); i++) {
 
-                if (set.Raw) {
-                    MLVobj.modeRaw();
-                    MLVobj.findPeak(set.PEAK);
-                    MLVobj.findcent(conf.center_wl, set.CENT);
-                    if (set.FSR_cosinefit || set.FWHM)
+                    MLVobj.ref = MLVobj.MULTI_ref[i];
+                    smooth == 0 ? MLVobj.modeRaw() : MLVobj.modeMovingAverage(set.MV_point);
+
+                    // if (set.FSR_cosinefit || set.FWHM_cosinefit || set.FWHM_Nor)
+                    if (set.FSR_cosinefit)
                         MLVobj.Cosinefit(conf.center_wl);
 
-                    const double nm = 1.E-9;
                     if (set.PEAK) {
-                        kpa::ins::log(item_no++, str_format("R_%s_PEAK_wl", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.wl * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("R_%s_PEAK_db", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.db}), "%2.2f", "db");
+                        MLVobj.findPeak();
+                        kpa::ins::log(item_no++, str_format("%s_%s_PEAK_wl", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.wl * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, str_format("%s_%s_PEAK_db", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.db}), "%2.2f", "db");
                     }
                     if (set.CENT) {
-                        kpa::ins::log(item_no++, str_format("R_%s_Cent", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.Cent_db}), "%2.2f", "db");
+                        MLVobj.findcent(conf.center_wl);
+                        kpa::ins::log(item_no++, str_format("%s_%s_Cent", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.Cent_db}), "%2.2f", "db");
                     }
                     if (set.FSR_cosinefit) {
-                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, true, set.FSR_cosinefit);
-                        kpa::ins::log(item_no++, str_format("R_%s_FSR_cosfit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
+                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, true);
+                        kpa::ins::log(item_no++, str_format("%s_%s_FSR_cosfit", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
                         if (set.Ng_lens > 0)
-                            kpa::ins::log(item_no++, str_format("R_%s_Ng_cosfit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
+                            kpa::ins::log(item_no++, str_format("%s_%s_Ng_cosfit", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
                     }
                     if (set.FSR_raw) {
-                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, false, set.FSR_raw);
-                        kpa::ins::log(item_no++, str_format("R_%s_FSR", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
+                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, false);
+                        kpa::ins::log(item_no++, str_format("%s_%s_FSR", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
                         if (set.Ng_lens > 0)
-                            kpa::ins::log(item_no++, str_format("R_%s_Ng", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
+                            kpa::ins::log(item_no++, str_format("%s_%s_Ng", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
                     }
-                    if (set.FWHM) {
-                        MLVobj.findFWHM(conf.center_wl, set.FWHM);
-                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("R_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
+                    // if (set.FWHM_Nor) {
+                    //     MLVobj.findFWHM(conf.center_wl, 0, false);
+                    //     kpa::ins::log(item_no++, str_format("%s_%s_FWHM_Nor", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.CFWHM * nm}), "%4.4f", "nm");
+                    // }
+                    // if (set.FWHM_cosinefit) {
+                    //     MLVobj.findFWHM(conf.center_wl, 0, true);
+                    //     kpa::ins::log(item_no++, str_format("%s_%s_FWHM_cosfit", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.CFWHM * nm}), "%4.4f", "nm");
+                    //     msg.prefix("FWHM::") << MLVobj.CFSR.FWHM;
+                    // }
+                }
+            };
+
+            if (set.Raw) {
+                Post_Processing(0);
+            }
+            if (set.Smooth && set.MV_point > 0) {
+                Post_Processing(1);
+            }
+
+            MLVobj.clear();
+            Rd.clear();
+        }
+        void PP_FWHMTable()
+        {
+
+            auto avg = [](const vector<double> &data) {
+                int count = 0;
+                double A = 0;
+                for (int i = 0; i < (int)data.size(); ++i) {
+                    if (data[i] != 0) {
+                        A = A + data[i];
+                        count++;
                     }
                 }
+                A = A / count;
+                return A;
+            };
 
-                if (set.Smooth && set.MV_point > 0) {
-                    MLVobj.modeMovingAverage(set.MV_point);
-                    MLVobj.findPeak(set.PEAK);
-                    MLVobj.findcent(conf.center_wl, set.CENT);
-                    if (set.FSR_cosinefit || set.FWHM)
-                        MLVobj.Cosinefit(conf.center_wl);
+            FORMAT::PostProcessing::PP_FWHMTable set;
+            ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
+            kpa::ins::MSG_INDENT __t;
+            Rd.path_lab = kpa::info::Path_XY;
+            Rd.GetFile(Rd.path_lab);
 
-                    const double nm = 1.E-9;
-                    if (set.PEAK) {
-                        kpa::ins::log(item_no++, str_format("S_%s_PEAK_wl", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.wl * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("S_%s_PEAK_db", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.db}), "%2.2f", "db");
+            string Q, f, title;
+            for (int i = 0; i < set.FWHMnum * 2 + 1; i++) {
+                Q += "Q" + std::to_string(i + 1) + ",";
+                f += "FWHM" + std::to_string(i + 1) + ",";
+                title = Q + f + "Qmean,FWHMmean";
+            }
+
+            for (int i = 0; i < (int)Rd.Path.size(); i++) {
+                MLVobj.CreatPath(Rd.Path[i]);
+            }
+            MLVobj.Getsubdie();
+
+            auto Post_Processing = [&](bool smooth, ofstream log) {
+                log << "dev,FSR,Ng,cent_wl,cent_Q," + title << "\n";
+
+                for (int i = 0; i < MLVobj.GetREFsize(); i++) {
+
+                    MLVobj.ref = MLVobj.MULTI_ref[i];
+
+                    smooth == 0 ? MLVobj.modeRaw() : MLVobj.modeMovingAverage(set.MV_point);
+                    MLVobj.Cosinefit(conf.center_wl);
+
+                    string FSRmode = set.FSR;
+                    if (FSRmode == "FSR_raw") {
+                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, false);
+                    } else {
+                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, true);
                     }
-                    if (set.CENT) {
-                        kpa::ins::log(item_no++, str_format("S_%s_Cent", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.Cent_db}), "%2.2f", "db");
+
+                    string FWHMmode = set.FWHM;
+                    if (FWHMmode == "FWHM_Nor") {
+                        MLVobj.findFWHM(conf.center_wl, set.FWHMnum, false);
+                    } else {
+                        MLVobj.findFWHM(conf.center_wl, set.FWHMnum, true);
                     }
-                    if (set.FSR_cosinefit) {
-                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, true, set.FSR_cosinefit);
-                        kpa::ins::log(item_no++, str_format("S_%s_FSR_cosfit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
-                        if (set.Ng_lens > 0)
-                            kpa::ins::log(item_no++, str_format("S_%s_Ng_cosfit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
-                    }
-                    if (set.FSR_raw) {
-                        MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, false, set.FSR_raw);
-                        kpa::ins::log(item_no++, str_format("S_%s_FSR", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
-                        if (set.Ng_lens > 0)
-                            kpa::ins::log(item_no++, str_format("S_%s_Ng", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
-                    }
-                    if (set.FWHM) {
-                        MLVobj.findFWHM(conf.center_wl, set.FWHM);
-                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_fit", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_fit * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("S_%s_FWHM_raw", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FWHM_raw * nm}), "%4.4f", "nm");
-                    }
+
+                    log << MLVobj.subdie[i] << ",";
+                    log << MLVobj.CFSR.FSR << ",";
+                    log << MLVobj.CFSR.Ng << ",";
+                    log << conf.center_wl << ",";
+                    log << MLVobj.CFSR.lumba / MLVobj.CFSR.CFWHM << ",";
+
+                    for (int j = 0; j < (int)MLVobj.CFSR.FWHM.size(); j++)
+                        log << MLVobj.CFSR.Q[j] << ",";
+
+                    for (int j = 0; j < (int)MLVobj.CFSR.FWHM.size(); j++)
+                        log << MLVobj.CFSR.FWHM[j] << ",";
+
+                    log << avg(MLVobj.CFSR.Q) << ",";
+                    log << avg(MLVobj.CFSR.FWHM) << "\n";
                 }
+            };
+            string file = string(date_stamp()) + string(proj_name) + str_format("__X%d_Y%d", px, py);
+            string fpath = getDataFolder() + "\\" + file + ".csv";         //! Build full path to default folder
+            string fspath = getDataFolder() + "\\" + file + "_Smooth.csv"; //! Build full path to default folder
+            ofstream f_log, fs_log;
+
+            if (set.Raw) {
+                f_log.open(fpath.c_str());
+                Post_Processing(0, std::move(f_log));
+                f_log.close();
+            }
+            if (set.Smooth && set.MV_point > 0) {
+                fs_log.open(fspath.c_str());
+                Post_Processing(1, std::move(fs_log));
+                fs_log.close();
             }
 
             MLVobj.clear();

@@ -70,9 +70,12 @@ void user::KPA_TEST()
         } else if (func_name == "WG_Analysis") {
             msg << "WGCutBack::WG_Analysis >> ";
             objWGCUTBACK.WG_Analysis();
-        } else if (func_name == "Analysis") {
-            msg << "Spectrum::Analysis >> ";
-            objSpectrum.Analysis();
+        } else if (func_name == "PP_Subdie") {
+            msg << "PostProcessing::PP_Subdie >> ";
+            objSpectrum.PP_Subdie();
+        } else if (func_name == "PP_FWHMTable") {
+            msg << "PostProcessing::PP_FWHMTable >> ";
+            objSpectrum.PP_FWHMTable();
         } else if (func_name == "SIPH_CONFIG") {
             msg << "SIPH::SIPH_CONFIG >> ";
             objSiph.config();

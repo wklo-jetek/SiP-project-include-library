@@ -88,10 +88,11 @@ double __cdecl FindBW(uint32_t reference, double loss);
  */
 double __cdecl FindFsrCent(uint32_t reference, double cent_wl, Enum Datamode);
 /*!
- * FindFwhmCent
+ * FindFwhm
  */
-void __cdecl FindFwhmCent(uint32_t reference, double cent_wl, double *R_FWHM, 
-	double *Fit_FWHM);
+void __cdecl FindFwhm(uint32_t reference, double cent_wl, int32_t FWHM_num, 
+	double *FWHMcent, double *lamda, double FWHM[], Enum Datamode, 
+	int32_t FWHM_len);
 /*!
  * ALGOCosFit
  */

@@ -31,8 +31,9 @@ namespace FORMAT {
         struct WG_Subdie;
         struct WG_Analysis;
     }
-    namespace Spectrum {
-        struct Analysis;
+    namespace PostProcessing {
+        struct PP_Subdie;
+        struct PP_FWHMTable;
     }
     namespace RECORD {
         struct REC_WAFER_POSITION;
@@ -277,7 +278,7 @@ struct FORMAT::WGCutBack::WG_Subdie
     dbl x = 0.0;           //* width=85
 };
 
-struct FORMAT::Spectrum::Analysis
+struct FORMAT::PostProcessing::PP_Subdie
 {
     str dev_name = "NAME"; //*width=100
     // str condition = "NAME"; //*x_ofs=110,y_ofs=-47
@@ -289,5 +290,16 @@ struct FORMAT::Spectrum::Analysis
     boolean FSR_raw = false;       //*
     boolean FSR_cosinefit = false; //*x_ofs=84, y_ofs=-23
     dbl Ng_lens = 0;               //*width=70,format="%4.1f nm"
-    boolean FWHM = false;          //*
+    // boolean FWHM_Nor = false;       //*
+    // boolean FWHM_cosinefit = false; //*x_ofs=84, y_ofs=-23
+};
+struct FORMAT::PostProcessing::PP_FWHMTable
+{
+    boolean Raw = true;           //*
+    boolean Smooth = false;       //*x_ofs=60,y_ofs=-23
+    i32 MV_point = 10;            //*width=70
+    str_select FSR = "FSR_raw";   //*select="FSR_raw|FSR_cosinefit"
+    dbl Ng_lens = 1000;           //*width=70,format="%4.1f nm"
+    str_select FWHM = "FWHM_Nor"; //*select="FWHM_Nor|FWHM_cosinefit"
+    i32 FWHMnum = 0;              //*
 };
