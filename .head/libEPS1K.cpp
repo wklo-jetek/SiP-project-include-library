@@ -268,7 +268,7 @@ FT_STATUS FTD2::Purge(FT_HANDLE hdl, uint32_t Mask)
     }
     return __Purge(hdl, Mask);
 }
-FT_STATUS FTD3::Create(const string &dev_desc, uint32_t flags, FT_HANDLE *hdl)
+FT_STATUS FTD3::Create(const std::string &dev_desc, uint32_t flags, FT_HANDLE *hdl)
 {
     if (!__Create)
     {
@@ -339,7 +339,7 @@ int PM1K::Init()
         }
     if (hdl == (FT_HANDLE)NULL)
     {
-        std::cout << "*** Fail to connect instrument PM1000!" << endl;
+        std::cout << "*** Fail to connect instrument PM1000!" << std::endl;
         return -1;
     }
     else
@@ -439,7 +439,8 @@ void PM1K::WriteSOP(const std::vector<uint16_t> &sop)
 }
 void PM1K::WriteSOP(const std::vector<float> &sop)
 {
-    auto round = [](float in) -> uint16_t {
+    auto round = [](float in) -> uint16_t
+    {
         if (in >= 65535.0)
             return 65535;
         return uint16_t(in + 0.5);
@@ -635,7 +636,8 @@ void EPS1000::feedback(bool enable, EPS1000::MODE mode, EPS1000::TRACE trace)
 {
     int err_sgn_delay, ate, dither_amp;
     int max_fb;
-    union ADDR347 {
+    union ADDR347
+    {
         struct
         {
             uint16_t detector_mode : 2, gradient_type : 1, reference_path : 1, sensitive_mode : 1, : 1, APD_control : 1;

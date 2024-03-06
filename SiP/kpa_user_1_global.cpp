@@ -1318,6 +1318,11 @@ namespace user {
                 const double nm = 1.E-9;
 
                 for (int i = 0; i < MLVobj.GetREFsize(); i++) {
+                    auto dev_name = [&](const char *post) -> const char * {
+                        static string buf;
+                        buf = string((smooth) ? "S_" : "R_") + MLVobj.subdie[i].c_str() + "_" + post;
+                        return buf.c_str();
+                    };
 
                     MLVobj.ref = MLVobj.MULTI_ref[i];
                     smooth == 0 ? MLVobj.modeRaw() : MLVobj.modeMovingAverage(set.MV_point);
@@ -1328,24 +1333,24 @@ namespace user {
 
                     if (set.PEAK) {
                         MLVobj.findPeak();
-                        kpa::ins::log(item_no++, str_format("%s_%s_PEAK_wl", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.wl * nm}), "%4.4f", "nm");
-                        kpa::ins::log(item_no++, str_format("%s_%s_PEAK_db", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.PEAK.db}), "%2.2f", "db");
+                        kpa::ins::log(item_no++, dev_name("PEAK_wl"), std::vector({MLVobj.PEAK.wl * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, dev_name("PEAK_db"), std::vector({MLVobj.PEAK.db}), "%2.2f", "db");
                     }
                     if (set.CENT) {
                         MLVobj.findcent(conf.center_wl);
-                        kpa::ins::log(item_no++, str_format("%s_%s_Cent", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.Cent_db}), "%2.2f", "db");
+                        kpa::ins::log(item_no++, dev_name("Cent"), std::vector({MLVobj.Cent_db}), "%2.2f", "db");
                     }
                     if (set.FSR_cosinefit) {
                         MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, true);
-                        kpa::ins::log(item_no++, str_format("%s_%s_FSR_cosfit", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, dev_name("FSR_cosfit"), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
                         if (set.Ng_lens > 0)
-                            kpa::ins::log(item_no++, str_format("%s_%s_Ng_cosfit", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
+                            kpa::ins::log(item_no++, dev_name("Ng_cosfit"), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
                     }
                     if (set.FSR_raw) {
                         MLVobj.findFSRFeat(conf.center_wl, set.Ng_lens, false);
-                        kpa::ins::log(item_no++, str_format("%s_%s_FSR", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
+                        kpa::ins::log(item_no++, dev_name("FSR"), std::vector({MLVobj.CFSR.FSR * nm}), "%4.4f", "nm");
                         if (set.Ng_lens > 0)
-                            kpa::ins::log(item_no++, str_format("%s_%s_Ng", (smooth) ? "S" : "R", MLVobj.subdie[i].c_str()).c_str(), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
+                            kpa::ins::log(item_no++, dev_name("Ng"), std::vector({MLVobj.CFSR.Ng}), "%4.4f", "");
                     }
                     // if (set.FWHM_Nor) {
                     //     MLVobj.findFWHM(conf.center_wl, 0, false);
@@ -1633,16 +1638,23 @@ namespace user {
             kpa::ins::MSG_INDENT __t;
             FORMAT::RECORD::SET_CENTER_WL set;
             ItemReader_Get_Data((uint8_t *)&set, sizeof(set));
+            auto set_siph_config = [&]() {
+                laser.center_wavelength_nm = conf.center_wl;
+                msg.prefix("Set Center Wavelength to : ").format("%5.3f nm") << laser.center_wavelength_nm;
+                laser.backToCenterWL();
+            };
 
             string source(set.source);
             if (source == "SiPh_config") {
-                laser.center_wavelength_nm = conf.center_wl;
-                laser.backToCenterWL();
+                set_siph_config();
             } else if (source == "PeakWL(buffer)") {
                 auto spctm = objTestAlgrorithm.subSpctmBufSelect(set.buffer);
                 auto pt = spctm->peak();
-                laser.center_wavelength_nm = pt.wl;
+                laser.center_wavelength_nm = pt.wl * 1.E+9;
+                msg.prefix("Set Center Wavelength to : ").format("%5.3f nm") << laser.center_wavelength_nm;
                 laser.backToCenterWL();
+            } else if (source == "SiPh_Config") {
+                set_siph_config();
             }
         }
     };
