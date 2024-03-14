@@ -227,7 +227,7 @@ FT_STATUS FTD2::Read(FT_HANDLE hdl, uint8_t *buf, uint32_t size_buf, uint32_t *s
 {
     if (!__Read)
     {
-        std::cout << "*** FT_Read is not valid!";
+        std::cout << "*** FT_Read is not valid!" << std::endl;
         return FT_INVALID_HANDLE;
     }
     return __Read(hdl, (LPVOID)buf, (DWORD)size_buf, (LPDWORD)size_read);
@@ -236,7 +236,7 @@ FT_STATUS FTD2::GetQueueStatus(FT_HANDLE hdl, uint32_t *size_buf)
 {
     if (!__GetQueueStatus)
     {
-        std::cout << "*** FT_GetQueueStatus is not valid!" << endl;
+        std::cout << "*** FT_GetQueueStatus is not valid!" << std::endl;
         return FT_INVALID_HANDLE;
     }
     return __GetQueueStatus(hdl, (DWORD *)size_buf);
@@ -245,7 +245,7 @@ FT_STATUS FTD2::SetBaudRate(FT_HANDLE hdl, uint32_t BaudRate)
 {
     if (!__SetBaudRate)
     {
-        std::cout << "*** FT_SetBaudRate is not valid!" << endl;
+        std::cout << "*** FT_SetBaudRate is not valid!" << std::endl;
         return FT_INVALID_HANDLE;
     }
     return __SetBaudRate(hdl, (ULONG)BaudRate);
@@ -254,7 +254,7 @@ FT_STATUS FTD2::SetDataCharacteristics(FT_HANDLE hdl, uint8_t WordLength, uint8_
 {
     if (!__SetDataCharacteristics)
     {
-        std::cout << "*** FT_SetDataCharacteristics is not valid!" << endl;
+        std::cout << "*** FT_SetDataCharacteristics is not valid!" << std::endl;
         return FT_INVALID_HANDLE;
     }
     return __SetDataCharacteristics(hdl, WordLength, StopBits, Parity);

@@ -2,6 +2,7 @@
 #define LIBCM300_HPP
 #include "..\kpa_main_p.hpp"
 #include <vector>
+#include <sstream>
 
 //! ==== Prober Instructions ==== !//
 
@@ -105,25 +106,31 @@ void CM300::probing(STAT state)
 {
     if (cont_stat == STAT::none)
         getProbingState();
-    auto chuck_contact = [&]() {
+    if (cont_stat == state)
+        return;
+    auto chuck_contact = [&]()
+    {
         if (__chuck == contact)
             return;
         query("MoveChuckContact");
         __chuck = contact;
     };
-    auto chuck_seperate = [&]() {
+    auto chuck_seperate = [&]()
+    {
         if (__chuck == separate)
             return;
         query("MoveChuckSeparation");
         __chuck = separate;
     };
-    auto fiber_contact = [&]() {
+    auto fiber_contact = [&]()
+    {
         if (__fiber == contact)
             return;
         hxpod.FindOpticalHeight();
         __fiber = contact;
     };
-    auto fiber_separate = [&]() {
+    auto fiber_separate = [&]()
+    {
         if (__fiber == separate)
             return;
         query("MoveOpticalSeparationHeight W");
@@ -146,11 +153,24 @@ void CM300::probing(STAT state)
     default:
         break;
     }
+    cont_stat = state;
 }
 CM300::STAT CM300::getProbingState()
 {
+    if (!__fValid)
+        return cont_stat;
+    auto split = [](const char *str) -> std::vector<std::string>
+    {
+        std::istringstream iss(str);
+        std::vector<std::string> tokens;
+        std::string token;
+        while (iss >> token)
+            tokens.push_back(token);
+        return tokens;
+    };
     auto rlt = query("ReadChuckStatus"); //* 0: 7 7 0 0 T 1 C 2 0 P
-    char &c = rlt[15];
+    auto args = split(rlt);
+    char c = args[7][0];
     switch (c)
     {
     case 'C':
@@ -170,6 +190,8 @@ CM300::STAT CM300::getProbingState()
     case '0':
         cont_stat = STAT::separate;
         break;
+    default:
+        std::cout << "[CM300] Warning! Failed to analysis chuck status." << std::endl;
     }
     return cont_stat;
 }
@@ -221,7 +243,8 @@ void CM300::HEXAPOD::MoveHexapodXY(double x_um, double y_um)
 void CM300::HEXAPOD::MovePztXY(double x_um, double y_um)
 {
     char buf[128];
-    auto checkRange = [](double v) -> bool { return ((v > 0.) && (v < 100.)); };
+    auto checkRange = [](double v) -> bool
+    { return ((v > 0.) && (v < 100.)); };
     if (!checkRange(x_um))
         return;
     if (!checkRange(y_um))

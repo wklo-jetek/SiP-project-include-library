@@ -8,7 +8,8 @@ void user::KPA_INIT(uint32_t bridge_num)
 
     ItemReader_Initialize(proj_path);
     LibItemReader_SetEvent((char *)"init");
-    ItemReader_FunctionOutset(1);
+    fLoadTestRecipe = false;
+    // ItemReader_FunctionOutset(1);
 
     char buf[128];
     while (ItemReader_NextFunction(buf, 128)) {

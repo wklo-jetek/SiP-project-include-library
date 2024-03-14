@@ -4,8 +4,21 @@
 void user::KPA_TEST()
 {
     kpa::ins::MSG_INDENT __t;
-    LibItemReader_SetEvent((char *)"test");
-    ItemReader_FunctionOutset(1);
+
+    if (fLoadTestRecipe) {
+        if (kpa::info::panel_mode) { //! Auto mode
+            if (kpa::flag::f_debug) {
+                LibItemReader_SetEvent((char *)"test");
+            } else {
+                ItemReader_FunctionOutset(0);
+            }
+        } else { //! Menual mode
+            LibItemReader_SetEvent((char *)"test");
+        }
+    } else {
+        LibItemReader_SetEvent((char *)"test");
+        fLoadTestRecipe = true;
+    }
     // ***  Program start  *** //
 
     auto printDie = [&]() {

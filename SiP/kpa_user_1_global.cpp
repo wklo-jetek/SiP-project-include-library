@@ -10,9 +10,10 @@ namespace user {
     using namespace kpa::type;
     using namespace std;
 
-    bool fWaferStart = true; //* Wafer start flag
-    int px, py;              //* Die Position (X, Y)
-    int item_no = 1;         //* item number
+    bool fWaferStart = true;      //* Wafer start flag
+    bool fLoadTestRecipe = false; //* Test Recipe
+    int px, py;                   //* Die Position (X, Y)
+    int item_no = 1;              //* item number
     int logcheckcount = 0;
     string warning;
     struct CONF
