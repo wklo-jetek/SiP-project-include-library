@@ -22,7 +22,6 @@ namespace FORMAT {
         struct TA_2DGC;
         struct TA_1IMO;
         struct TA_DC_BIAS;
-        struct TA_2DGC_Full;
         struct TA_2DGC_Normalize;
         struct TA_GetSpctmDelta;
     }
@@ -182,20 +181,6 @@ struct FORMAT::TEST_ALGRORITHM::TA_2DGC_Normalize
     dbl wl_upper = 1360.0;              //* lower=0., width=72, format="%#.1f", x_ofs=84, y_ofs=-45
     boolean IL_MAX = true;              //*
     boolean IL_MIN = true;              //* x_ofs=84, y_ofs=-23
-};
-struct FORMAT::TEST_ALGRORITHM::TA_2DGC_Full
-{
-    str dev_1D_name = "dev1";              //* width=84
-    i32 dev_1D_num = 0;                    //* width=72, x_ofs=90, y_ofs=-45
-    str_select sens_1D = "(2,1)";          //* width=54, x_ofs=174, y_ofs=-45, select="(2,1)|(2,2)|(2,3)|(2,4)|(2,5)|(2,6)|(3,1)|(3,2)|(3,3)|(3,4)|(3,5)|(3,6)|(3,1)|(3,2)", width=72
-    str dev_2D_name = "dev1";              //* width=84, y_ofs=12
-    i32 dev_2D_num = 0;                    //* width=72, x_ofs=90, y_ofs=-45
-    str_select sens1_2D = "(2,1)";         //* width=54, select="(2,1)|(2,2)|(2,3)|(2,4)|(2,5)|(2,6)|(3,1)|(3,2)|(3,3)|(3,4)|(3,5)|(3,6)|(3,1)|(3,2)", width=72
-    str_select sens2_2D = "(2,1)";         //* width=54, x_ofs=90, y_ofs=-45, select="(2,1)|(2,2)|(2,3)|(2,4)|(2,5)|(2,6)|(3,1)|(3,2)|(3,3)|(3,4)|(3,5)|(3,6)|(3,1)|(3,2)", width=72
-    boolean save_1D_data = true;           //* y_ofs=24
-    boolean save_2D_raw_data = true;       //* y_ofs=0
-    boolean save_2D_normalize_data = true; //* y_ofs=0
-    str_select spectrum_step = "10pm";     //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60
 };
 struct FORMAT::TEST_ALGRORITHM::TA_DC_BIAS
 {

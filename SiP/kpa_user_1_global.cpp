@@ -943,8 +943,9 @@ namespace user {
                 pos[1] = probe.hxpod.pzt.y;
                 return pos;
             };
-            auto subAlignProc = [&](char *sensor_name, CTPX::SENSOR &sensor) -> vector<double> {
+            auto subAlignProc = [&](char *sensor_name, const CTPX::SENSOR &sensor) -> vector<double> {
                 msg.prefix("Switch ref to  : ") << sensor_name;
+                kpa::ins::MSG_INDENT __t;
                 laser.switch_ref(sensor);
                 Sleep(5);
                 couple_method.run();
@@ -1169,7 +1170,7 @@ namespace user {
             spctms.samp = spectrumStepToSampling(set.spectrum_step);
 
             if (set.save_source_data) {
-                auto subCopyData = [&](auto unit, const char *post) { spctms.add((unit.pdb->title + post), unit.pdb->data); };
+                auto subCopyData = [&](auto unit, const char *post) { spctms.add((string(post) + "(" + unit.pdb->title + ")"), unit.pdb->data); };
                 subCopyData(_2dgc_buf.te[0], "TE1");
                 subCopyData(_2dgc_buf.te[1], "TE2");
                 subCopyData(_2dgc_buf.tm[0], "TM1");
@@ -1194,6 +1195,8 @@ namespace user {
 
             // auto seg_spctm = spctms.segment((conf.center_wl - 0.5) * 1nm, (conf.center_wl + 0.5) * 1nm);
             auto findSpecific = [&](int idx_d, const char *name) {
+                msg << str_format("Feature of %s :", name);
+                kpa::ins::MSG_INDENT __t;
                 auto peak = spctms[idx_d].peak();
                 msg.prefix("Peak Wave Length          : ").unit("nm").format("%4.4f") << peak.wl;
                 msg.prefix("Peak Power                : ").unit("db").format("%+4.2f") << peak.pw;
@@ -1208,6 +1211,7 @@ namespace user {
                     // lv_spctm.modeMovingAverage(101);
                     double bw = lv_spctm.findBW(1.0);
                     // double bw = spctms[idx_d].bandwidth(1.0f);
+                    msg.prefix("1db bandwidth             : ").unit("db").format("%4.2f") << bw;
                     kpa::ins::log(item_no++, str_format("%s_1db_BW", set.name).c_str(), vector({bw}), "%4.4f", "nm");
                 }
                 // double avg = vector_average(seg_spctm[idx_d].pdb->data);
@@ -1223,7 +1227,7 @@ namespace user {
             }
 
             if (set.range_limit_search) {
-                auto limit_search = [&](MULTI_SPECTRUM::SPEC_UNIT ___spctms, const char *desc) {
+                auto limit_search = [&](const MULTI_SPECTRUM::SPEC_UNIT &___spctms, const char *desc) {
                     double value = 0.;
                     auto &pdb = ___spctms.pdb;
                     if (set.IL_MAX) {

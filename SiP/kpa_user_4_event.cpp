@@ -19,7 +19,7 @@ void user::KPA_EVENT(const std::string &event)
     }
     if (event == "EOT") {
         fWaferStart = false;
-        laser.wavelength = conf.center_wl;
+        laser.backToCenterWL(); //! laser.wavelength = conf.center_wl;
         if (kpa::info::panel_mode)
             probe.probing(probe.separate);
         return;
