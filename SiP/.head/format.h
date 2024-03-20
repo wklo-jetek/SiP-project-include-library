@@ -177,8 +177,8 @@ struct FORMAT::TEST_ALGRORITHM::TA_2DGC_Normalize
     str_select spectrum_step = "10pm";  //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60
     boolean meas_1db_bandwidth = false; //* y_ofs=12
     boolean range_limit_search = true;  //* y_ofs=12
-    dbl wl_lower = 1260.0;              //* width=72, y_ofs=-3
-    dbl wl_upper = 1360.0;              //* lower=0., width=72, format="%#.1f", x_ofs=84, y_ofs=-45
+    dbl wl_lower = 1260.0;              //* lower=1260., upper=1357.5, width=72, format="%#.2f nm", y_ofs=-3
+    dbl wl_upper = 1357.5;              //* lower=1260., upper=1357.5, width=72, format="%#.2f nm", x_ofs=84, y_ofs=-45
     boolean IL_MAX = true;              //*
     boolean IL_MIN = true;              //* x_ofs=84, y_ofs=-23
 };

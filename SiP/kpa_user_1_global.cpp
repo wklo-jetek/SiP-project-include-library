@@ -986,8 +986,6 @@ namespace user {
                     kpa::ins::log(item_no++, str_format("%s_%s_PEAK_WL", set.device, name).c_str(), vector({peak.wl}), "%4.4f", "nm");
                     kpa::ins::log(item_no++, str_format("%s_%s_PEAK_PW", set.device, name).c_str(), vector({peak.pw}), "%2.2f", "db");
                     kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_PW", set.device, name, conf.center_wl).c_str(), vector({cent.pw}), "%2.2f", "db");
-                    // double avg = vector_average(seg_spctm[ch].pdb->data);
-                    // kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_AVG_PW", set.device, name, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
                 }
             };
             findSpecific(0, set.name_of_sens1);
@@ -1193,7 +1191,6 @@ namespace user {
             spctms.add("TES", tes);
             spctms.add("TMS", tms);
 
-            // auto seg_spctm = spctms.segment((conf.center_wl - 0.5) * 1nm, (conf.center_wl + 0.5) * 1nm);
             auto findSpecific = [&](int idx_d, const char *name) {
                 msg << str_format("Feature of %s :", name);
                 kpa::ins::MSG_INDENT __t;
@@ -1208,14 +1205,10 @@ namespace user {
                 if (set.meas_1db_bandwidth) {
                     LV_SG_SPCTM lv_spctm;
                     lv_spctm.CreatData(spctms.start, spctms.step, spctms[idx_d].pdb->data);
-                    // lv_spctm.modeMovingAverage(101);
-                    double bw = lv_spctm.findBW(1.0);
-                    // double bw = spctms[idx_d].bandwidth(1.0f);
+                    double bw = lv_spctm.findBW(1.0); // double bw = spctms[idx_d].bandwidth(1.0f);
                     msg.prefix("1db bandwidth             : ").unit("db").format("%4.2f") << bw;
                     kpa::ins::log(item_no++, str_format("%s_1db_BW", set.name).c_str(), vector({bw}), "%4.4f", "nm");
                 }
-                // double avg = vector_average(seg_spctm[idx_d].pdb->data);
-                // kpa::ins::log(item_no++, str_format("%s_%s_%#.0f_AVG_PW", set.name, name, conf.center_wl).c_str(), vector({avg}), "%2.2f", "db");
             };
             int idx_d = (set.save_source_data) ? 4 : 0;
             findSpecific(idx_d + 0, "TES");
@@ -1227,29 +1220,34 @@ namespace user {
             }
 
             if (set.range_limit_search) {
-                auto limit_search = [&](const MULTI_SPECTRUM::SPEC_UNIT &___spctms, const char *desc) {
-                    double value = 0.;
-                    auto &pdb = ___spctms.pdb;
+                auto limit_search = [&set](const MULTI_SPECTRUM::SPEC_UNIT &___spctms) {
+                    vector<double> log_buf(1, 0.0);
+                    auto &s = ___spctms;
+                    auto findPoint = [&s, &log_buf, &set](auto func, const char *subname) {
+                        auto itr = func(s.pdb->data.begin(), s.pdb->data.end());
+                        log_buf[0] = *itr;
+                        string name1 = str_format("%s_%s_%s", set.name, s.pdb->title.c_str(), subname);
+                        kpa::ins::log(item_no++, name1.c_str(), log_buf, "%+2.3f", "db");
+                        log_buf[0] = s.start + s.step * (itr - s.pdb->data.begin());
+                        string name2 = str_format("%s_%s_%s_lambda", set.name, s.pdb->title.c_str(), subname);
+                        kpa::ins::log(item_no++, name2.c_str(), log_buf, "%4.2f", "nm");
+                    };
                     if (set.IL_MAX) {
-                        value = *std::min_element(pdb->data.begin(), pdb->data.end());
-                        string item_name = str_format("%s_%s_%s_ILMAX", set.name, pdb->title.c_str(), desc);
-                        kpa::ins::log(item_no++, item_name.c_str(), vector({value}), "%+2.3f", "db");
+                        findPoint(std::min_element<std::vector<float>::iterator>, "ILMAX");
+                        // auto itr = *std::min_element(pdb->data.begin(), pdb->data.end());
+                        // string item_name = str_format("%s_%s_%s_ILMAX", set.name, pdb->title.c_str(), desc);
+                        // kpa::ins::log(item_no++, item_name.c_str(), vector({value}), "%+2.3f", "db");
                     }
                     if (set.IL_MIN) {
-                        value = *std::max_element(pdb->data.begin(), pdb->data.end());
-                        string item_name = str_format("%s_%s_%s_ILMIN", set.name, pdb->title.c_str(), desc);
-                        kpa::ins::log(item_no++, item_name.c_str(), vector({value}), "%+2.3f", "db");
+                        findPoint(std::max_element<std::vector<float>::iterator>, "ILMIN");
+                        // value = *std::max_element(pdb->data.begin(), pdb->data.end());
+                        // string item_name = str_format("%s_%s_ILMIN", set.name, pdb->title.c_str());
+                        // kpa::ins::log(item_no++, item_name.c_str(), vector({value}), "%+2.3f", "db");
                     }
                 };
-                auto spsg = spctms.segment(set.wl_lower, set.wl_upper);
-                limit_search(spsg[idx_d + 0], "TES");
-                limit_search(spsg[idx_d + 1], "TMS");
-                // auto tesg = _2dgc_buf.te.segment(set.wl_lower, set.wl_upper);
-                // limit_search(tesg[0], "TE1");
-                // limit_search(tesg[1], "TE2");
-                // auto tmsg = _2dgc_buf.tm.segment(set.wl_lower, set.wl_upper);
-                // limit_search(tmsg[0], "TM1");
-                // limit_search(tmsg[1], "TM2");
+                auto spsg = spctms.segment(set.wl_lower * 1nm, set.wl_upper * 1nm);
+                limit_search(spsg[idx_d + 0]);
+                limit_search(spsg[idx_d + 1]);
             }
         }
         void spctmDelta()

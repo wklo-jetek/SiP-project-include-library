@@ -399,6 +399,16 @@ void MULTI_SPECTRUM::save(const std::string &file)
 }
 MULTI_SPECTRUM MULTI_SPECTRUM::segment(double wl_start, double wl_stop)
 {
+    auto checkWavelength = [](double &wl)
+    {
+        if (wl > 1.0)
+        {
+            kpa::ins::msg << "[Werning!] Wavelength unit error in Function MULTI_SPECTRUM::segment, fix to unit (m)";
+            wl = wl * 1.E-9; //* assume the unit is nm
+        }
+    };
+    checkWavelength(wl_start);
+    checkWavelength(wl_stop);
     MULTI_SPECTRUM out;
     out.samp = this->samp;
     out.step = this->step;
