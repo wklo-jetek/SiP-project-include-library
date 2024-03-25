@@ -1407,12 +1407,13 @@ namespace user {
             }
 
             for (int i = 0; i < (int)Rd.Path.size(); i++) {
-                MLVobj.CreatPath(Rd.Path[i]);
+                if (Rd.Path[i].find("_IV.csv") == string::npos && Rd.Path[i].find("_Z.csv") == string::npos)
+                    MLVobj.CreatPath(Rd.Path[i]);
             }
             MLVobj.Getsubdie();
 
             auto Post_Processing = [&](bool smooth, ofstream log) {
-                log << "dev,FSR,Ng,cent_wl,cent_Q," + title << "\n";
+                log << "dev,FSR,Ng,cent_wl,cent_Q,cent_FWHM,Lambda," + title << "\n";
 
                 for (int i = 0; i < MLVobj.GetREFsize(); i++) {
 
@@ -1434,12 +1435,15 @@ namespace user {
                     } else {
                         MLVobj.findFWHM(conf.center_wl, set.FWHMnum, true);
                     }
-
+                    log << std::fixed;
+                    log << std::setprecision(4);
                     log << MLVobj.subdie[i] << ",";
                     log << MLVobj.CFSR.FSR << ",";
                     log << MLVobj.CFSR.Ng << ",";
                     log << conf.center_wl << ",";
                     log << MLVobj.CFSR.lumba / MLVobj.CFSR.CFWHM << ",";
+                    log << MLVobj.CFSR.CFWHM << ",";
+                    log << MLVobj.CFSR.lumba << ",";
 
                     for (int j = 0; j < (int)MLVobj.CFSR.FWHM.size(); j++)
                         log << MLVobj.CFSR.Q[j] << ",";
@@ -1449,6 +1453,7 @@ namespace user {
 
                     log << avg(MLVobj.CFSR.Q) << ",";
                     log << avg(MLVobj.CFSR.FWHM) << "\n";
+                    MLVobj.CFSR.Q.clear();
                 }
             };
             string file = string(date_stamp()) + string(proj_name) + str_format("__X%d_Y%d", px, py);

@@ -5,6 +5,9 @@ extern "C" {
 typedef uint16_t  Enum;
 #define Enum_Raw 0
 #define Enum_CosineFit 1
+typedef uint16_t  Enum1;
+#define Enum1_Normalize 0
+#define Enum1_CosineFit 1
 
 /*!
  * NewData
@@ -91,7 +94,7 @@ double __cdecl FindFsrCent(uint32_t reference, double cent_wl, Enum Datamode);
  * FindFwhm
  */
 void __cdecl FindFwhm(uint32_t reference, double cent_wl, int32_t FWHM_num, 
-	double *FWHMcent, double *lamda, double FWHM[], Enum Datamode, 
+	double *FWHMcent, double *lamda, double FWHM[], Enum1 Datamode, 
 	int32_t FWHM_len);
 /*!
  * ALGOCosFit
