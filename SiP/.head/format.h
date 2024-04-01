@@ -188,9 +188,9 @@ struct FORMAT::TEST_ALGRORITHM::TA_DC_BIAS
     i32 device_num = 0;                             //* width=72, x_ofs=90, y_ofs=-45
     str_select sensor = "(2,1)";                    //* width=54, x_ofs=174, y_ofs=-45, select="(2,1)|(2,2)|(2,3)|(2,4)|(2,5)|(2,6)|(3,1)|(3,2)|(3,3)|(3,4)|(3,5)|(3,6)|(3,1)|(3,2)", width=72
     str_select couple_method = "polar_analog_scan"; //* select="no_xy_scan|no_polar_scan|polar_analog_scan|polar_digital_scan", width=120
-    dbl bias_start = -0.1;                          //* upper=3.0, lower=-3.0, width=72, format="%#.2f deg"
-    dbl bias_step = 0.1;                            //* upper=3.0, lower=0.01, width=72, format="%#.2f deg", x_ofs=84, y_ofs=-45
-    dbl bias_end = 0.1;                             //* upper=3.0, lower=-3.0, width=72, format="%#.2f deg", x_ofs=168, y_ofs=-45
+    dbl bias_start = -0.1;                          //* upper=3.0, lower=-3.0, width=72, format="%#.2f V"
+    dbl bias_step = 0.1;                            //* upper=3.0, lower=0.01, width=72, format="%#.2f V", x_ofs=84, y_ofs=-45
+    dbl bias_end = 0.1;                             //* upper=3.0, lower=-3.0, width=72, format="%#.2f V", x_ofs=168, y_ofs=-45
     boolean save_spectrum = false;                  //* y_ofs=24
     str_select scan_method = "analog_fb";           //* select="no_fb|analog_fb|digital_fb|highloss_fb", width=86
     str_select spectrum_step = "10pm";              //* select="100pm|10pm|1pm|0.5pm|0.1pm", width=60
@@ -265,26 +265,26 @@ struct FORMAT::WGCutBack::WG_Subdie
 
 struct FORMAT::PostProcessing::PP_Subdie
 {
-    str dev_name = "NAME"; //*width=100
-    // str condition = "NAME"; //*x_ofs=110,y_ofs=-47
+    str dev_name = "NAME"; //* width=100
+    // str condition = "NAME"; //* x_ofs=110,y_ofs=-47
     boolean Raw = true;            //*
-    boolean Smooth = false;        //*x_ofs=60,y_ofs=-23
-    i32 MV_point = 10;             //*width=70
-    boolean PEAK = false;          //*y_ofs=20
+    boolean Smooth = false;        //* x_ofs=60,y_ofs=-23
+    i32 MV_point = 10;             //* width=70
+    boolean PEAK = false;          //* y_ofs=20
     boolean CENT = false;          //*
     boolean FSR_raw = false;       //*
-    boolean FSR_cosinefit = false; //*x_ofs=84, y_ofs=-23
-    dbl Ng_lens = 0;               //*width=70,format="%4.1f nm"
+    boolean FSR_cosinefit = false; //* x_ofs=84, y_ofs=-23
+    dbl Ng_lens = 0;               //* width=70,format="%4.1f nm"
     // boolean FWHM_Nor = false;       //*
     // boolean FWHM_cosinefit = false; //*x_ofs=84, y_ofs=-23
 };
 struct FORMAT::PostProcessing::PP_FWHMTable
 {
     boolean Raw = true;           //*
-    boolean Smooth = false;       //*x_ofs=60,y_ofs=-23
-    i32 MV_point = 10;            //*width=70
-    str_select FSR = "FSR_raw";   //*select="FSR_raw|FSR_cosinefit"
-    dbl Ng_lens = 1000;           //*width=70,format="%4.1f nm"
-    str_select FWHM = "FWHM_Nor"; //*select="FWHM_Nor|FWHM_cosinefit|FWHM_RefZero"
+    boolean Smooth = false;       //* x_ofs=60,y_ofs=-23
+    i32 MV_point = 10;            //* width=70
+    str_select FSR = "FSR_raw";   //* select="FSR_raw|FSR_cosinefit"
+    dbl Ng_lens = 1000;           //* width=70,format="%4.1f nm"
+    str_select FWHM = "FWHM_Nor"; //* select="FWHM_Nor|FWHM_cosinefit|FWHM_RefZero"
     i32 FWHMnum = 0;              //*
 };

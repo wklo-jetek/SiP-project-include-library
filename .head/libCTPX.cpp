@@ -38,19 +38,19 @@ public:
         operator double();
     };
     POWER power{this, hw};
-    class WAVELENGTH
-    {
-    private:
-        CTPX *r;
-        LLDriverBase *hw;
-        double var;
+    // class WAVELENGTH
+    // {
+    // private:
+    //     CTPX *r;
+    //     LLDriverBase *hw;
+    //     double var;
 
-    public:
-        WAVELENGTH(CTPX *p_root, LLDriverBase *_hw) : r(p_root), hw(_hw) {}
-        void operator=(double nm);
-        operator double();
-    };
-    WAVELENGTH wavelength{this, hw};
+    // public:
+    //     WAVELENGTH(CTPX *p_root, LLDriverBase *_hw) : r(p_root), hw(_hw) {}
+    //     void operator=(double nm);
+    //     operator double();
+    // };
+    // WAVELENGTH wavelength{this, hw};
     class SCAN
     {
     private:
@@ -153,24 +153,24 @@ CTPX::POWER::operator double()
 {
     return var;
 }
-void CTPX::WAVELENGTH::operator=(double nm)
-{
-    var = nm;
-    if (r->hw != NULL && var <= 1357.5 && var >= 1260.0)
-    {
-        r->hw->write(str_format(":CTP:RLAS1:WAV %.2fNM", var));
-        r->hw->write(":CTP:SENS:FBC 1");
-    }
-    if (r->hw != NULL && var <= 1502.5 && var >= 1637.5)
-    {
-        r->hw->write(str_format(":CTP:RLAS2:WAV %.2fNM", var));
-        r->hw->write(":CTP:SENS:FBC 2");
-    };
-}
-CTPX::WAVELENGTH::operator double()
-{
-    return var;
-}
+// void CTPX::WAVELENGTH::operator=(double nm)
+// {
+//     var = nm;
+//     if (r->hw != NULL && var <= 1357.5 && var >= 1260.0)
+//     {
+//         r->hw->write(str_format(":CTP:RLAS1:WAV %.2fNM", var));
+//         r->hw->write(":CTP:SENS:FBC 1");
+//     }
+//     if (r->hw != NULL && var <= 1502.5 && var >= 1637.5)
+//     {
+//         r->hw->write(str_format(":CTP:RLAS2:WAV %.2fNM", var));
+//         r->hw->write(":CTP:SENS:FBC 2");
+//     };
+// }
+// CTPX::WAVELENGTH::operator double()
+// {
+//     return var;
+// }
 int CTPX::SCAN::subSpeed(int sp)
 {
     for (auto &ele : ls_speed_select)
@@ -419,8 +419,18 @@ void CTPX::switch_ref(const CTPX::SENSOR &sensor)
 }
 void CTPX::setWavelength(double nm)
 {
-    if (hw != NULL)
+    if (hw == NULL)
+        return;
+    if (nm >= 1242.5 && nm <= 1357.5)
+    {
         hw->write(str_format(":CTP:RLAS1:WAV %.2fNM", nm));
+        hw->write(":CTP:SENS:FBC 1");
+    }
+    else if (nm >= 1502.5 && nm <= 1637.5)
+    {
+        hw->write(str_format(":CTP:RLAS2:WAV %.2fNM", nm));
+        hw->write(":CTP:SENS:FBC 2");
+    };
 }
 void CTPX::backToCenterWL()
 {

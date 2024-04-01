@@ -23,6 +23,7 @@ private:
     STAT cont_stat = none, __chuck = none, __fiber = none;
 
 public:
+    int __subdie = -1;
     class HEXAPOD
     {
     private:

@@ -25,6 +25,8 @@ void user::KPA_TEST()
         if (kpa::info::panel_mode) { //! Auto mode
             px = atoi(kpa::info::pos_x);
             py = atoi(kpa::info::pos_y);
+            probe.__subdie = 0; //! Prober driver alwayse return to subdie 0 after die change
+            probe.GetDiePosition();
         } else { //! Menual mode
             px = 0;
             py = 0;
@@ -45,7 +47,7 @@ void user::KPA_TEST()
     item_no = 1;
     printDie();
     laser.power = conf.laser_pw;
-    laser.wavelength = conf.center_wl;
+    laser.backToCenterWL(); // laser.wavelength = conf.center_wl;
     probe.hxpod.fiber_height = conf.fiber_height;
 
     // auto switchInstruction = [](char *ins) {

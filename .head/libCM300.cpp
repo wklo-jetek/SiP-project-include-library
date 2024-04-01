@@ -22,9 +22,9 @@ private:
     char *query(const char *wt_buf, int TO_ms);
     bool __fValid = false;
     STAT cont_stat = none, __chuck = none, __fiber = none;
-    int __subdie = -1;
 
 public:
+    int __subdie = -1;
     class HEXAPOD
     {
     private:
@@ -310,13 +310,13 @@ std::vector<int> CM300::GetDiePosition(int *px_p, int *py_p, int *subdie_p)
     if (!__fValid)
         return std::vector<int>({px, py});
     auto r_buf = query("GetDieDataAsNum");
-    sscanf(r_buf, "0:%d %d %d %d", &num, &px, &py, &__subdie);
+    sscanf(r_buf, "0:%d %d %d", &num, &px, &py); //! sscanf(r_buf, "0:%d %d %d %d", &num, &px, &py, &__subdie);
     if (px_p != NULL)
         *px_p = px;
     if (py_p != NULL)
         *py_p = py;
-    if (subdie_p != NULL)
-        *subdie_p = __subdie;
+    // if (subdie_p != NULL)
+    //     *subdie_p = __subdie;
     return std::vector<int>({px, py, __subdie});
 }
 
