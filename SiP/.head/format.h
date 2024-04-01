@@ -285,6 +285,6 @@ struct FORMAT::PostProcessing::PP_FWHMTable
     i32 MV_point = 10;            //*width=70
     str_select FSR = "FSR_raw";   //*select="FSR_raw|FSR_cosinefit"
     dbl Ng_lens = 1000;           //*width=70,format="%4.1f nm"
-    str_select FWHM = "FWHM_Nor"; //*select="FWHM_Nor|FWHM_cosinefit"
+    str_select FWHM = "FWHM_Nor"; //*select="FWHM_Nor|FWHM_cosinefit|FWHM_RefZero"
     i32 FWHMnum = 0;              //*
 };

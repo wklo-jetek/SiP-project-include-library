@@ -481,6 +481,7 @@ public:
         double lumba;
         std::vector<double> FWHM;
         std::vector<double> Q;
+        std::vector<double> ER;
     };
     struct PEAK_STRUCT
     {
@@ -501,7 +502,7 @@ public:
     void findcent(double wavelength);
     void findPeak();
     void findFSRFeat(double wl, double L, bool);
-    void findFWHM(double wl, int fwhmnum, bool);
+    void findFWHM(double wl, int fwhmnum, int);
 };
 void LV_SG_SPCTM::CreatData(double wl_start, double wl_step, const std::vector<float> &data)
 {
@@ -559,10 +560,11 @@ void LV_SG_SPCTM::findFSRFeat(double wl, double L, bool cosfit)
         return;
     CFSR.Ng = (wl * wl) / (CFSR.FSR * L * 1000);
 }
-void LV_SG_SPCTM::findFWHM(double wl, int fwhmnum, bool cosfit)
+void LV_SG_SPCTM::findFWHM(double wl, int fwhmnum, int mode)
 {
     CFSR.FWHM.resize(fwhmnum * 2 + 1);
-    FindFwhm(ref, wl, fwhmnum, &CFSR.CFWHM, &CFSR.lumba, &CFSR.FWHM[0], cosfit, fwhmnum * 2 + 1);
+    CFSR.ER.resize(fwhmnum * 2 + 1);
+    FindFwhm(ref, wl, fwhmnum, &CFSR.CFWHM, &CFSR.lumba, &CFSR.FWHM[0], &CFSR.ER[0], mode, fwhmnum * 2 + 1);
     for (int i = 0; i < (int)CFSR.FWHM.size(); i++)
     {
         CFSR.Q.push_back(CFSR.FWHM[i] == 0 ? 0 : CFSR.lumba / CFSR.FWHM[i]);

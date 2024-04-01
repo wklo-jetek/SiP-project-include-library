@@ -1331,8 +1331,8 @@ namespace user {
                     smooth == 0 ? MLVobj.modeRaw() : MLVobj.modeMovingAverage(set.MV_point);
 
                     // if (set.FSR_cosinefit || set.FWHM_cosinefit || set.FWHM_Nor)
-                    if (set.FSR_cosinefit)
-                        MLVobj.Cosinefit(conf.center_wl);
+                    // if (set.FSR_cosinefit)
+                    //     MLVobj.Cosinefit(conf.center_wl);
 
                     if (set.PEAK) {
                         MLVobj.findPeak();
@@ -1399,28 +1399,35 @@ namespace user {
             Rd.path_lab = kpa::info::Path_XY;
             Rd.GetFile(Rd.path_lab);
 
-            string Q, f, title;
+            string Q, f, E, title;
             for (int i = 0; i < set.FWHMnum * 2 + 1; i++) {
                 Q += "Q" + std::to_string(i + 1) + ",";
                 f += "FWHM" + std::to_string(i + 1) + ",";
-                title = Q + f + "Qmean,FWHMmean";
+                E += "ER" + std::to_string(i + 1) + ",";
+                title = "FSR,Ng,Lambda,cent_Q,cent_FWHM," + Q + E + f + "Qmean,ERmean,FWHMmean";
             }
 
             for (int i = 0; i < (int)Rd.Path.size(); i++) {
                 if (Rd.Path[i].find("_IV.csv") == string::npos && Rd.Path[i].find("_Z.csv") == string::npos)
                     MLVobj.CreatPath(Rd.Path[i]);
             }
+            int row = 8 + (set.FWHMnum * 2 + 1) * 3;
+            vector<string> header;
+            vector<vector<double>> table(row, vector<double>(MLVobj.GetREFsize(), 0));
             MLVobj.Getsubdie();
 
-            auto Post_Processing = [&](bool smooth, ofstream log) {
-                log << "dev,FSR,Ng,cent_wl,cent_Q,cent_FWHM,Lambda," + title << "\n";
+            stringstream ss(title);
+            string token;
+            while (getline(ss, token, ','))
+                header.push_back(token);
 
+            auto Post_Processing = [&](bool smooth, ofstream log) {
+                log << "dev,";
                 for (int i = 0; i < MLVobj.GetREFsize(); i++) {
 
                     MLVobj.ref = MLVobj.MULTI_ref[i];
 
                     smooth == 0 ? MLVobj.modeRaw() : MLVobj.modeMovingAverage(set.MV_point);
-                    MLVobj.Cosinefit(conf.center_wl);
 
                     string FSRmode = set.FSR;
                     if (FSRmode == "FSR_raw") {
@@ -1431,30 +1438,66 @@ namespace user {
 
                     string FWHMmode = set.FWHM;
                     if (FWHMmode == "FWHM_Nor") {
-                        MLVobj.findFWHM(conf.center_wl, set.FWHMnum, false);
-                    } else {
-                        MLVobj.findFWHM(conf.center_wl, set.FWHMnum, true);
+                        MLVobj.findFWHM(conf.center_wl, set.FWHMnum, 0);
                     }
-                    log << std::fixed;
-                    log << std::setprecision(4);
-                    log << MLVobj.subdie[i] << ",";
-                    log << MLVobj.CFSR.FSR << ",";
-                    log << MLVobj.CFSR.Ng << ",";
-                    log << conf.center_wl << ",";
-                    log << MLVobj.CFSR.lumba / MLVobj.CFSR.CFWHM << ",";
-                    log << MLVobj.CFSR.CFWHM << ",";
-                    log << MLVobj.CFSR.lumba << ",";
+                    if (FWHMmode == "FWHM_cosinefit") {
+                        MLVobj.findFWHM(conf.center_wl, set.FWHMnum, 1);
+                    }
+                    if (FWHMmode == "FWHM_RefZero") {
+                        MLVobj.findFWHM(conf.center_wl, set.FWHMnum, 2);
+                    }
 
+                    int Col = 0;
+                    table[Col++][i] = MLVobj.CFSR.FSR;
+                    table[Col++][i] = MLVobj.CFSR.Ng;
+                    table[Col++][i] = MLVobj.CFSR.lumba;
+                    table[Col++][i] = MLVobj.CFSR.lumba / MLVobj.CFSR.CFWHM;
+                    table[Col++][i] = MLVobj.CFSR.CFWHM;
+                    for (int j = 0; j < (int)MLVobj.CFSR.Q.size(); j++)
+                        table[Col++][i] = MLVobj.CFSR.Q[j];
+                    for (int j = 0; j < (int)MLVobj.CFSR.ER.size(); j++)
+                        table[Col++][i] = MLVobj.CFSR.ER[j];
                     for (int j = 0; j < (int)MLVobj.CFSR.FWHM.size(); j++)
-                        log << MLVobj.CFSR.Q[j] << ",";
+                        table[Col++][i] = MLVobj.CFSR.FWHM[j];
+                    table[Col++][i] = avg(MLVobj.CFSR.Q);
+                    table[Col++][i] = avg(MLVobj.CFSR.ER);
+                    table[Col++][i] = avg(MLVobj.CFSR.FWHM);
 
-                    for (int j = 0; j < (int)MLVobj.CFSR.FWHM.size(); j++)
-                        log << MLVobj.CFSR.FWHM[j] << ",";
-
-                    log << avg(MLVobj.CFSR.Q) << ",";
-                    log << avg(MLVobj.CFSR.FWHM) << "\n";
+                    // log << std::fixed;
+                    // log << std::setprecision(4);
+                    // log << MLVobj.subdie[i] << ",";
+                    // log << MLVobj.CFSR.FSR << ",";
+                    // log << MLVobj.CFSR.Ng << ",";
+                    // log << conf.center_wl << ",";
+                    // log << MLVobj.CFSR.lumba / MLVobj.CFSR.CFWHM << ",";
+                    // log << MLVobj.CFSR.CFWHM << ",";
+                    // log << MLVobj.CFSR.lumba << ",";
+                    // for (int j = 0; j < (int)MLVobj.CFSR.FWHM.size(); j++)
+                    //     log << MLVobj.CFSR.Q[j] << ",";
+                    // for (int j = 0; j < (int)MLVobj.CFSR.FWHM.size(); j++)
+                    //     log << MLVobj.CFSR.FWHM[j] << ",";
+                    // log << avg(MLVobj.CFSR.Q) << ",";
+                    // log << avg(MLVobj.CFSR.FWHM) << "\n";
                     MLVobj.CFSR.Q.clear();
+                    MLVobj.CFSR.ER.clear();
+                    MLVobj.CFSR.FWHM.clear();
+                    log << MLVobj.subdie[i] << ",";
                 }
+                // write
+                log << "\n";
+                log << std::scientific << setprecision(4);
+                for (int i = 0; i < (int)header.size(); i++) {
+                    log << header[i] << ",";
+                    for (int j = 0; j < (int)MLVobj.GetREFsize(); j++) {
+                        log << table[i][j] << ",";
+                    }
+                    log << endl;
+                }
+                // clear
+                for (auto &row : table) {
+                    row.clear();
+                }
+                table.clear();
             };
             string file = string(date_stamp()) + string(proj_name) + str_format("__X%d_Y%d", px, py);
             string fpath = getDataFolder() + "\\" + file + ".csv";         //! Build full path to default folder
