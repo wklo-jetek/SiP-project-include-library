@@ -423,13 +423,13 @@ void CTPX::setWavelength(double nm)
         return;
     if (nm >= 1242.5 && nm <= 1357.5)
     {
-        hw->write(str_format(":CTP:RLAS1:WAV %.2fNM", nm));
         hw->write(":CTP:SENS:FBC 1");
+        hw->write(str_format(":CTP:RLAS1:WAV %.2fNM", nm));
     }
     else if (nm >= 1502.5 && nm <= 1637.5)
     {
-        hw->write(str_format(":CTP:RLAS2:WAV %.2fNM", nm));
         hw->write(":CTP:SENS:FBC 2");
+        hw->write(str_format(":CTP:RLAS2:WAV %.2fNM", nm));
     };
 }
 void CTPX::backToCenterWL()
